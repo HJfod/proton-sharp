@@ -22,6 +22,23 @@ namespace proton {
 
                 this.Controls.Add(C);
             }
+
+            public Button AddMenuButton (string _Name) {
+                Button C = new Button();
+                C.Text = _Name;
+                C.Anchor = (AnchorStyles.Left);
+                C.Dock = DockStyle.Left;
+                C.ForeColor = Style.Colors.Text;
+                C.AutoSize = true;
+                C.Height = Style.TitlebarSize;
+                C.Font = new Font("Segoe UI", Style.TitlebarSize / (int)(3F * Style.Scale));
+                C.FlatStyle = FlatStyle.Flat;
+                C.FlatAppearance.BorderSize = 0;
+
+                this.Controls.Add(C);
+
+                return C;
+            }
         }
     }
 }

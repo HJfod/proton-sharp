@@ -7,20 +7,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.CSharp.RuntimeBinder;
 
 namespace proton {
-    public class WindowResizer : Panel {
-        public WindowResizer(string direction = "NW") {
-
-        }
-    }
     public partial class Main : Form {
         public int FileSystemSize = 200;
         public (int, int) FileSystemSizeLimits = (100, 300);
         public bool FileSystemVisible = false;
 
+        public dynamic[] TopMenu;
+        public List<dynamic> ShortCuts = new List<dynamic>{};
+
         private void MaxNomWindow(Form OG) {
             OG.WindowState = OG.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
+        }
+
+        public void NewFile(object s, EventArgs e) {
+
+        }
+
+        public void SaveFile(object s, EventArgs e, bool _SaveAs = false) {
+
+        }
+
+        public void OpenFile(object s, EventArgs e) {
+
         }
 
         public Main() {
@@ -29,6 +40,7 @@ namespace proton {
             this.DoubleBuffered = true;
             this.ForeColor = Color.Black;
             this.FormBorderStyle = FormBorderStyle.None;
+            this.Icon = new Icon("resources/icon.ico");
 
             Point? MovingWindow = null;
 
@@ -37,26 +49,26 @@ namespace proton {
             Titlebar.Top = 0;
             Titlebar.Height = Style.TitlebarSize;
             Titlebar.BackColor = Style.Colors.TitlebarBG;
-            Titlebar.DoubleClick += (object s, EventArgs e) => MaxNomWindow(this);
-            Titlebar.MouseDown += (object s, MouseEventArgs e) => MovingWindow = new Point(e.X, e.Y);
-            Titlebar.MouseUp += (object s, MouseEventArgs e) => MovingWindow = null;
-            Titlebar.MouseMove += (object s, MouseEventArgs e) => {
+            Titlebar.DoubleClick += (s, e) => MaxNomWindow(this);
+            Titlebar.MouseDown += (s, e) => MovingWindow = new Point(e.X, e.Y);
+            Titlebar.MouseUp += (s, e) => MovingWindow = null;
+            Titlebar.MouseMove += (s, e) => {
                 if (MovingWindow is Point) {
                     Point p2 = this.PointToScreen(new Point(e.X, e.Y));
                     this.Location = new Point(p2.X - ((Point)MovingWindow).X, p2.Y - ((Point)MovingWindow).Y);
                 }
             };
-            Titlebar.AddControlButton("─", (object s, EventArgs e) => this.WindowState = FormWindowState.Minimized);
-            Titlebar.AddControlButton("☐", (object s, EventArgs e) => MaxNomWindow(this));
-            Titlebar.AddControlButton("✕", (object s, EventArgs e) => this.Close());
+            Titlebar.AddControlButton("─", (s, e) => this.WindowState = FormWindowState.Minimized);
+            Titlebar.AddControlButton("☐", (s, e) => MaxNomWindow(this));
+            Titlebar.AddControlButton("✕", (s, e) => this.Close());
 
             ContextMenuStrip CM = new ContextMenuStrip();
-            CM.Items.Add(new ToolStripMenuItem("Minimize", null, (object s, EventArgs e) => this.WindowState = FormWindowState.Minimized ));
-            CM.Items.Add(new ToolStripMenuItem("Maximize", null, (object s, EventArgs e) => MaxNomWindow(this) ));
+            CM.Items.Add(new ToolStripMenuItem("Minimize", null, (s, e) => this.WindowState = FormWindowState.Minimized ));
+            CM.Items.Add(new ToolStripMenuItem("Maximize", null, (s, e) => MaxNomWindow(this) ));
 
             CM.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem qi = new ToolStripMenuItem("Quit", null, (object s, EventArgs e) => this.Close() );
+            ToolStripMenuItem qi = new ToolStripMenuItem("Quit", null, (s, e) => this.Close() );
             qi.ShortcutKeys = (Keys.Alt | Keys.F4);
             CM.Items.Add(qi);
 
@@ -66,18 +78,30 @@ namespace proton {
             Bottom.Dock = DockStyle.Bottom;
             Bottom.Height = Style.FooterSize;
             Bottom.BackColor = Style.Colors.FooterBG;
-            Bottom.Cursor = Cursors.SizeNS;
 
             Panel Base = new Panel();
             Base.Dock = DockStyle.Fill;
             Base.BackColor = Style.Colors.BGDark;
             Base.BorderStyle = BorderStyle.None;
 
-            TreeView FileSystem = new TreeView();
+            Panel FileSystem = new Panel();
             FileSystem.Width = FileSystemSize;
             FileSystem.Dock = DockStyle.Left | DockStyle.Bottom | DockStyle.Top;
             FileSystem.BackColor = Style.Colors.BGDark;
-            FileSystem.BorderStyle = BorderStyle.None;
+
+            Panel FileSystemControls = new Panel();
+            FileSystemControls.BackColor = Style.Colors.FooterBG;
+            FileSystemControls.Height = Style.TabHeight;
+            FileSystemControls.Dock = DockStyle.Top;
+
+            TreeView FileSystemView = new TreeView();
+            FileSystemView.Width = FileSystemSize;
+            FileSystemView.Dock = DockStyle.Fill;
+            FileSystemView.BackColor = Style.Colors.BGDark;
+            FileSystemView.BorderStyle = BorderStyle.None;
+
+            FileSystem.Controls.Add(FileSystemView);
+            FileSystem.Controls.Add(FileSystemControls);
             
             bool ResizingFileSystem = false;
 
@@ -86,10 +110,10 @@ namespace proton {
             Dragger.Dock = DockStyle.Bottom | DockStyle.Top | DockStyle.Left;
             Dragger.Left = FileSystemSize;
             Dragger.Width = Style.DraggerWidth;
-            Dragger.Cursor = Cursors.SizeWE;
-            Dragger.MouseDown += (object sender, MouseEventArgs e) => ResizingFileSystem = true;
-            Dragger.MouseUp += (object sender, MouseEventArgs e) => ResizingFileSystem = false;
-            Dragger.MouseMove += (object sender, MouseEventArgs e) => {
+            Dragger.MouseEnter += (object s, EventArgs e) => Dragger.Cursor = FileSystem.Visible ? Cursors.SizeWE : Cursors.PanEast;
+            Dragger.MouseDown += (object s, MouseEventArgs e) => ResizingFileSystem = true;
+            Dragger.MouseUp += (object s, MouseEventArgs e) => ResizingFileSystem = false;
+            Dragger.MouseMove += (object s, MouseEventArgs e) => {
                 if (ResizingFileSystem) {
                     int S = FileSystem.Width;
                     S = S + e.X;
@@ -100,22 +124,107 @@ namespace proton {
                     FileSystem.Width = S;
                 }
             };
-            Dragger.DoubleClick += (object sender, EventArgs e) => {
+            Dragger.DoubleClick += (object s, EventArgs e) => {
                 FileSystem.Visible = FileSystem.Visible ? false : true;
+                Dragger.Visible = FileSystem.Visible;
             };
-
-            Panel SideDragger = new Panel();
 
             Panel EditorContainer = new Panel();
             EditorContainer.Left = FileSystemSize + Style.DraggerWidth;
             EditorContainer.Dock = DockStyle.Fill;
-            EditorContainer.BackColor = Style.Colors.BG;
 
-            Label Q = new Label();
-            Q.Text = "Hello bitch ass";
-            Q.ForeColor = Style.Colors.Text;
+            Panel TabContainer = new Panel();
+            TabContainer.Dock = DockStyle.Top;
+            TabContainer.Height = Style.TabHeight;
+            TabContainer.BackColor = Style.Colors.TabBG;
 
-            EditorContainer.Controls.Add(Q);
+            Panel EditorPadding = new Panel();
+            EditorPadding.Dock = DockStyle.Fill;
+            EditorPadding.BackColor = Style.Colors.BG;
+            EditorPadding.Padding = Style.Padding;
+
+            Elements.Textarea Editor = new Elements.Textarea();
+            Editor.Left = FileSystemSize + Style.DraggerWidth;
+            Editor.Dock = DockStyle.Fill;
+            Editor.BackColor = Style.Colors.BG;
+            Editor.Font = new Font("Consolas", Style.EditorTextSize);
+            Editor.ForeColor = Style.Colors.Text;
+
+            EditorPadding.Controls.Add(Editor);
+
+            EditorContainer.Controls.Add(EditorPadding);
+            EditorContainer.Controls.Add(TabContainer);
+
+            this.TopMenu = new dynamic[] {
+                new {
+                    Name = "File",
+                    SubMenu = new dynamic[] {
+                        new {
+                            Name = "New File",
+                            Click = new EventHandler(this.NewFile)
+                        },
+                        new {
+                            Name = "Open File",
+                            Click = new EventHandler(this.OpenFile)
+                        },
+                        new {
+                            Name = "Save File",
+                            Click = new EventHandler((s, e) => this.SaveFile(s, e))
+                        },
+                        new {
+                            Name = "Save as",
+                            Click = new EventHandler((s, e) => this.SaveFile(s, e, true))
+                        },
+                        new { Type = "Separator" },
+                        new {
+                            Name = "Quit",
+                            Accelerator = (Keys.Alt | Keys.F4),
+                            Click = new EventHandler((s, e) => { this.Close(); })
+                        }
+                    }
+                },
+                new {
+                    Name = "View",
+                    SubMenu = new dynamic[] {
+                        new {
+                            Name = "Toggle File System",
+                            Accelerator = (Keys.Control | Keys.M),
+                            Click = new EventHandler((s, e) => {
+                                FileSystem.Visible = FileSystem.Visible ? false : true;
+                                Dragger.Visible = FileSystem.Visible;
+                            })
+                        }
+                    }
+                }
+            };
+
+            Array.Reverse(this.TopMenu);
+
+            foreach (dynamic Menu in TopMenu) {
+                Button M = Titlebar.AddMenuButton(Menu.Name);
+                ContextMenuStrip M_CM = new ContextMenuStrip();
+
+                foreach (dynamic Sub in Menu.SubMenu) {
+                    try {
+                        var T = Sub.Type;
+                        
+                        switch (T) {
+                            case "Separator":
+                                M_CM.Items.Add(new ToolStripSeparator());
+                                break;
+                        }
+                    } catch (RuntimeBinderException) {
+                        var Item = new ToolStripMenuItem(Sub.Name, null, Sub.Click);
+                        try {
+                            Item.ShortcutKeys = Sub.Accelerator;
+                            ShortCuts.Add(new { A = Sub.Accelerator, C = Sub.Click });
+                        } catch (Exception) {}
+                        M_CM.Items.Add(Item);
+                    }
+                }
+
+                M.Click += (s, e) => M_CM.Show(new Point(this.Left + M.Left, this.Top + Style.TitlebarSize));
+            }
 
             Base.Controls.Add(EditorContainer);
             Base.Controls.Add(Dragger);
@@ -126,6 +235,27 @@ namespace proton {
             this.Controls.Add(Base);
 
             this.CenterToScreen();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
+            foreach (dynamic k in ShortCuts) {
+                if (keyData == k.A) {
+                    EventHandler temp = k.C;
+                    if (temp != null)
+                    {
+                        temp(this, e);
+                    }
+                }
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        protected override CreateParams CreateParams {
+            get {
+                CreateParams cp = base.CreateParams;
+                cp.Style |= 0x40000;
+                return cp;
+            }
         }
     }
 }
