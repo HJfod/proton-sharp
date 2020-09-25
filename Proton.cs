@@ -147,7 +147,7 @@ namespace proton {
             Editor.Left = FileSystemSize + Style.DraggerWidth;
             Editor.Dock = DockStyle.Fill;
             Editor.BackColor = Style.Colors.BG;
-            Editor.Font = new Font("Consolas", Style.EditorTextSize);
+            Editor.Font = new Font("Segoe UI Light", Style.EditorTextSize);
             Editor.ForeColor = Style.Colors.Text;
 
             EditorPadding.Controls.Add(Editor);
@@ -223,7 +223,12 @@ namespace proton {
                     }
                 }
 
-                M.Click += (s, e) => M_CM.Show(new Point(this.Left + M.Left, this.Top + Style.TitlebarSize));
+                // M.Click += (s, e) => M_CM.Show(new Point(this.Left + M.Left, this.Top + Style.TitlebarSize));
+               /* Base.Click += (s, e) => {
+                    foreach (Control mw in Base.Controls.Find("__MenuWindow", true))
+                        mw.Dispose();
+                };*/
+                M.Click += (s, e) => this.Controls.Add(new MenuWindow(this, Menu.SubMenu));
             }
 
             Base.Controls.Add(EditorContainer);
@@ -241,9 +246,8 @@ namespace proton {
             foreach (dynamic k in ShortCuts) {
                 if (keyData == k.A) {
                     EventHandler temp = k.C;
-                    if (temp != null)
-                    {
-                        temp(this, e);
+                    if (temp != null) {
+                        temp(this, new EventArgs());
                     }
                 }
             }
