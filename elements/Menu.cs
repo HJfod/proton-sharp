@@ -7,6 +7,7 @@ namespace proton {
     public class MenuWindow : TableLayoutPanel {
         public MenuWindow(Control _par, dynamic[] _menu, bool _isTop = false, Point? _loc = null) {
             this.Name = "__MenuWindow";
+            this.BackColor = Color.White;
             
             this.Location = _loc == null ? new Point(
                 Cursor.Position.X - _par.Left,

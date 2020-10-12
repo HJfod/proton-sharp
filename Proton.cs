@@ -10,10 +10,23 @@ using System.Windows.Forms;
 using Microsoft.CSharp.RuntimeBinder;
 
 namespace proton {
+    public static class Methods {
+        public static void AddContextMenu(this Control _c, Control _par, dynamic[] _menu) {
+            _c.MouseUp += (s, e) => {
+                if (e.Button == MouseButtons.Right) {
+                    var m = new MenuWindow(_par, _menu);
+                    _par.Controls.Add(m);
+                    m.BringToFront();
+                }
+            };
+        }
+    }
+
     public partial class Main : Form {
         public int FileSystemSize = 200;
         public (int, int) FileSystemSizeLimits = (100, 300);
         public bool FileSystemVisible = false;
+        public int TitleBarYOffset = 6;
 
         public dynamic[] TopMenu;
         public List<dynamic> ShortCuts = new List<dynamic>{};
@@ -55,7 +68,7 @@ namespace proton {
             Titlebar.MouseMove += (s, e) => {
                 if (MovingWindow is Point) {
                     Point p2 = this.PointToScreen(new Point(e.X, e.Y));
-                    this.Location = new Point(p2.X - ((Point)MovingWindow).X, p2.Y - ((Point)MovingWindow).Y);
+                    this.Location = new Point(p2.X - ((Point)MovingWindow).X, p2.Y - ((Point)MovingWindow).Y - this.TitleBarYOffset);
                 }
             };
             Titlebar.AddControlButton("─", (s, e) => this.WindowState = FormWindowState.Minimized);
@@ -150,6 +163,35 @@ namespace proton {
             Editor.Font = new Font("Segoe UI Light", Style.EditorTextSize);
             Editor.ForeColor = Style.Colors.Text;
 
+            Editor.AddContextMenu(this, new dynamic[] {
+                new {
+                    Name = "Copy",
+                    Click = new EventHandler((s, e) => Editor.Copy())
+                },
+                new {
+                    Name = "Paste",
+                    Click = new EventHandler((s, e) => Editor.Paste())
+                },
+                new {
+                    Name = "some sub",
+                    Menu = new dynamic[] {
+                        new {
+                            Name = "yeah",
+                            Click = new EventHandler((s, e) => {})
+                        },
+                        new {
+                            Name = "Another sub",
+                            Menu = new dynamic[] {
+                                new {
+                                    Name = "third",
+                                    Click = new EventHandler((s, e) => {})
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
             EditorPadding.Controls.Add(Editor);
 
             EditorContainer.Controls.Add(EditorPadding);
@@ -158,7 +200,7 @@ namespace proton {
             this.TopMenu = new dynamic[] {
                 new {
                     Name = "File",
-                    SubMenu = new dynamic[] {
+                    Menu = new dynamic[] {
                         new {
                             Name = "New File",
                             Click = new EventHandler(this.NewFile)
@@ -185,7 +227,7 @@ namespace proton {
                 },
                 new {
                     Name = "View",
-                    SubMenu = new dynamic[] {
+                    Menu = new dynamic[] {
                         new {
                             Name = "Toggle File System",
                             Accelerator = (Keys.Control | Keys.M),
@@ -202,33 +244,33 @@ namespace proton {
 
             foreach (dynamic Menu in TopMenu) {
                 Button M = Titlebar.AddMenuButton(Menu.Name);
-                ContextMenuStrip M_CM = new ContextMenuStrip();
+                //ContextMenuStrip M_CM = new ContextMenuStrip();
 
-                foreach (dynamic Sub in Menu.SubMenu) {
+                foreach (dynamic Sub in Menu.Menu) {
                     try {
                         var T = Sub.Type;
                         
-                        switch (T) {
+                        /*switch (T) {
                             case "Separator":
                                 M_CM.Items.Add(new ToolStripSeparator());
                                 break;
-                        }
+                        }*/
                     } catch (RuntimeBinderException) {
-                        var Item = new ToolStripMenuItem(Sub.Name, null, Sub.Click);
+                        //var Item = new ToolStripMenuItem(Sub.Name, null, Sub.Click);
                         try {
-                            Item.ShortcutKeys = Sub.Accelerator;
+                            //Item.ShortcutKeys = Sub.Accelerator;
                             ShortCuts.Add(new { A = Sub.Accelerator, C = Sub.Click });
                         } catch (Exception) {}
-                        M_CM.Items.Add(Item);
+                        //M_CM.Items.Add(Item);
                     }
                 }
 
                 // M.Click += (s, e) => M_CM.Show(new Point(this.Left + M.Left, this.Top + Style.TitlebarSize));
-               /* Base.Click += (s, e) => {
-                    foreach (Control mw in Base.Controls.Find("__MenuWindow", true))
-                        mw.Dispose();
-                };*/
-                M.Click += (s, e) => this.Controls.Add(new MenuWindow(this, Menu.SubMenu));
+                M.Click += (s, e) => {
+                    var m = new MenuWindow(this, Menu.Menu);
+                    this.Controls.Add(m);
+                    m.BringToFront();
+                };
             }
 
             Base.Controls.Add(EditorContainer);
@@ -239,7 +281,19 @@ namespace proton {
 
             this.Controls.Add(Base);
 
+            this.MenuCloseControlAdd(this, this);
+
             this.CenterToScreen();
+        }
+
+        private void MenuCloseControlAdd(Control c, Form Base) {
+            foreach (Control cc in c.Controls)
+                this.MenuCloseControlAdd(cc, Base);
+            
+            c.MouseDown += (s, e) => {
+                foreach (Control mw in Base.Controls.Find("__MenuWindow", true))
+                    mw.Dispose();
+            };
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
