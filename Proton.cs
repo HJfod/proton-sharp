@@ -290,10 +290,12 @@ namespace proton {
             foreach (Control cc in c.Controls)
                 this.MenuCloseControlAdd(cc, Base);
             
-            c.MouseDown += (s, e) => {
-                foreach (Control mw in Base.Controls.Find("__MenuWindow", true))
-                    mw.Dispose();
-            };
+            c.MouseDown += (s, e) => CloseAllMenus(Base);
+        }
+
+        public static void CloseAllMenus(Control Base) {
+            foreach (Control mw in Base.Controls.Find("__MenuWindow", true))
+                mw.Dispose();
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {

@@ -26,7 +26,7 @@ namespace proton {
                         case Keys.Tab:
                             try {
                                 bool shift = Control.ModifierKeys == Keys.Shift;
-                                bool sel = this.SelectedText.Trim() == this.Lines[this.GetLineFromCharIndex(this.SelectionStart)].Trim();
+                                bool sel = this.SelectedText == this.Lines[this.GetLineFromCharIndex(this.SelectionStart)].Trim();
                                 if (shift || sel) {
                                     int[] ss = { this.SelectionStart + (shift ? -1 : 1), this.SelectionLength };
                                     int curr = this.GetLineFromCharIndex(this.SelectionStart);
@@ -36,9 +36,8 @@ namespace proton {
                                         if (this.Lines[curr].StartsWith('\t'))
                                             newLines[curr] = this.Lines[curr].Substring(1);
                                         this.Lines = newLines;
-                                    } else {
+                                    } else
                                         this.SelectedText = $"\t{this.SelectedText}";
-                                    }
 
                                     this.SelectionStart = ss[0];
                                     this.SelectionLength = ss[1];

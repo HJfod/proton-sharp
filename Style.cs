@@ -22,8 +22,11 @@ namespace proton {
         public static int TabSideSize = _S(6);
         public static int PaddingSize = _S(15);
         public static int EditorTextSize = 12;
+        public static int MenuOptionSize = _S(25);
+        public static int UITextSize = _S(12);
         public static Padding Padding = new Padding(PaddingSize);
         public static string UIFontName = "Segoe UI Light";
+        public static Font UIFont = new Font(UIFontName, UITextSize);
 
         public static dynamic Colors = new ExpandoObject();
 

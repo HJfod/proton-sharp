@@ -7,6 +7,7 @@ public class DefaultStyle {
         FooterBG            = "#161821",
         Text                = "#ffffff",
         TextDark            = "#aaaaaa",
-        Light               = "#464952"
+        Light               = "#464952",
+        MenuBG              = "#212527"
     };
 }
