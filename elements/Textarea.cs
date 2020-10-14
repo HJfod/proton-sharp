@@ -13,9 +13,6 @@ namespace proton {
                 this.DoubleBuffered = true;
 
                 this.KeyDown += (s, e) => {
-                    if (Control.ModifierKeys == Keys.Control) {
-                        e.SuppressKeyPress = true;
-                    }
                     switch (e.KeyCode) {
                         case Keys.Enter:
                             try {

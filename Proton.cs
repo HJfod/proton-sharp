@@ -109,10 +109,8 @@ namespace proton {
 
             Titlebar.ContextMenuStrip = CM;
 
-            Panel Bottom = new Panel();
+            Elements.Footer Bottom = new Elements.Footer();
             Bottom.Dock = DockStyle.Bottom;
-            Bottom.Height = Style.FooterSize;
-            Bottom.BackColor = Style.Colors.FooterBG;
 
             Panel Base = new Panel();
             Base.Dock = DockStyle.Fill;
@@ -185,6 +183,9 @@ namespace proton {
             Editor.BackColor = Style.Colors.BG;
             Editor.Font = new Font("Segoe UI Light", Style.EditorTextSize);
             Editor.ForeColor = Style.Colors.Text;
+            Editor.TextChanged += (s, e) => {
+                Bottom.UpdateWordCount(Editor.Text.Split(" ").Length);
+            };
 
             Editor.AddContextMenu(this, new dynamic[] {
                 new {
@@ -385,16 +386,29 @@ namespace proton {
         }
 
         public void SelectTab(int _id) {
+            Elements.Tab n = null;
+            Elements.Tab o = null;
             foreach (Elements.Tab t in this.Controls.Find("__tab", true)) {
-                if (t.Selected)
-                    t.FileContent = Editor.Text;
-                t.Selected = t.ID == _id ? true : false;
+                if (_id == -1) n = t;
+                if (t.Selected) o = t;
+                if (t.ID == _id) n = t;
+                t.Selected = false;
                 t.Invalidate();
             }
-            Editor.Text = ((Elements.Tab)this.Controls.Find("__tab", true)[_id]).FileContent;
+            if (n == null) {
+                if (this.Controls.Find("__tab", true).Length == 0)
+                    AddTab(Ext.DefaultFile);
+                SelectTab(-1);
+                return;
+            }
+            if (o != null) o.FileContent = Editor.Text;
+            Editor.Text = n.FileContent;
+            n.Selected = true;
+            n.Invalidate();
         }
 
         private bool CheckTabIDAvailability(int _id) {
+            if (_id > 1000) return false;
             bool f = false;
             foreach (Elements.Tab t in this.Controls.Find("__tab", true))
                 if (t.ID == _id) f = true;
@@ -402,9 +416,8 @@ namespace proton {
         }
 
         public void AddTab(string _name = "", string _content = "") {
-            int id = this.Controls.Find("__tab", true).Length;
-
-            while (CheckTabIDAvailability(id)) id++;
+            int id = 0;
+            while (this.CheckTabIDAvailability(id)) id++;
 
             Elements.Tab Tab = new Elements.Tab(_name, _content, id);
 
@@ -415,14 +428,14 @@ namespace proton {
                     Name = "Close#Ctrl + W",
                     Click = new EventHandler((s, e) => {
                         Tab.Dispose();
-                        SelectTab(this.Controls.Find("__tab", true).Length - 1);
+                        this.SelectTab(id > 0 ? id - 1 : 0);
                     })
                 }
             });
 
             this.Controls.Find("__tabs", true)[0].Controls.Add(Tab);
 
-            SelectTab(id);
+            this.SelectTab(id);
         }
 
         private void MenuCloseControlAdd(Control c, Form Base) {
