@@ -14,7 +14,7 @@ namespace proton {
                 C.Dock = DockStyle.Right;
                 C.ForeColor = Style.Colors.Text;
                 C.Size = new Size((int)((double)Style.TitlebarSize * 1.5), Style.TitlebarSize);
-                C.Font = new Font(Style.UIFontName, Style.TitlebarSize / (int)(3F * Style.Scale));
+                C.Font = new Font(Style.Fonts.UI, Style.TitlebarSize / (int)(3F * Style.Scale));
                 C.FlatStyle = FlatStyle.Flat;
                 C.FlatAppearance.BorderSize = 0;
 
@@ -31,7 +31,7 @@ namespace proton {
                 C.ForeColor = Style.Colors.Text;
                 C.AutoSize = true;
                 C.Height = Style.TitlebarSize;
-                C.Font = new Font(Style.UIFontName, Style.TitlebarSize / (int)(3F * Style.Scale));
+                C.Font = new Font(Style.Fonts.UI, Style.TitlebarSize / (int)(3F * Style.Scale));
                 C.FlatStyle = FlatStyle.Flat;
                 C.FlatAppearance.BorderSize = 0;
 

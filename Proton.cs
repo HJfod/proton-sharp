@@ -36,7 +36,7 @@ namespace proton {
         }
 
         public void NewFile(object s, EventArgs e) {
-
+            MessageBox.Show("save", "save");
         }
 
         public void SaveFile(object s, EventArgs e, bool _SaveAs = false) {
@@ -165,15 +165,60 @@ namespace proton {
 
             Editor.AddContextMenu(this, new dynamic[] {
                 new {
-                    Name = "Copy",
+                    Name = "Copy#Ctrl + C",
                     Click = new EventHandler((s, e) => Editor.Copy())
                 },
                 new {
-                    Name = "Paste",
+                    Name = "Paste#Ctrl + V",
                     Click = new EventHandler((s, e) => Editor.Paste())
                 },
                 new {
-                    Name = "some sub",
+                    Name = "Cut#Ctrl + X",
+                    Click = new EventHandler((s, e) => Editor.Cut())
+                },
+                new { Type = "Separator" },
+                new {
+                    Name = "Style",
+                    Menu = new dynamic[] {
+                        new {
+                            Name = "Bold#Ctrl + B",
+                            Click = new EventHandler((s, e) => {})
+                        },
+                        new {
+                            Name = "Italics#Ctrl + I",
+                            Click = new EventHandler((s, e) => {})
+                        },
+                        new {
+                            Name = "Underline#Ctrl + U",
+                            Click = new EventHandler((s, e) => {})
+                        },
+                        new {
+                            Name = "Color",
+                            Menu = new dynamic[] {}
+                        }
+                    }
+                },
+                new {
+                    Name = "Insert",
+                    Menu = new dynamic[] {
+                        new {
+                            Name = "Symbol",
+                            Menu = new dynamic[] {}
+                        },
+                        new {
+                            Name = "Image",
+                            Click = new EventHandler((s, e) => {})
+                        }
+                    }
+                },
+                new { Type = "Separator" },
+                new {
+                    Name = "Search",
+                    Click = new EventHandler((s, e) => {})
+                },
+                new { Type = "Separator" },
+                new {
+                    Name = "Settings",
                     Menu = new dynamic[] {
                         new {
                             Name = "yeah",
@@ -192,6 +237,16 @@ namespace proton {
                 }
             });
 
+            FileSystemView.AddContextMenu(this, new dynamic[] {
+                new {
+                    Name = "Hide filesystem#Ctrl + M",
+                    Click = new EventHandler((s, e) => {
+                        FileSystem.Visible = FileSystem.Visible ? false : true;
+                        Dragger.Visible = FileSystem.Visible;
+                    })
+                }
+            });
+
             EditorPadding.Controls.Add(Editor);
 
             EditorContainer.Controls.Add(EditorPadding);
@@ -202,26 +257,43 @@ namespace proton {
                     Name = "File",
                     Menu = new dynamic[] {
                         new {
-                            Name = "New File",
-                            Click = new EventHandler(this.NewFile)
+                            Name = "New File#Ctrl + N",
+                            Click = new EventHandler(this.NewFile),
+                            Accelerator = (Keys.Control | Keys.N)
                         },
                         new {
-                            Name = "Open File",
+                            Name = "Open File#Ctrl + O",
                             Click = new EventHandler(this.OpenFile)
                         },
                         new {
-                            Name = "Save File",
+                            Name = "Save File#Ctrl + S",
                             Click = new EventHandler((s, e) => this.SaveFile(s, e))
                         },
                         new {
-                            Name = "Save as",
+                            Name = "Save as#Ctrl + Shift + S",
                             Click = new EventHandler((s, e) => this.SaveFile(s, e, true))
                         },
                         new { Type = "Separator" },
                         new {
-                            Name = "Quit",
+                            Name = "New Window",
+                            Click = new EventHandler((s, e) => {
+
+                            })
+                        },
+                        new { Type = "Separator" },
+                        new {
+                            Name = "Quit#Alt + F4",
                             Accelerator = (Keys.Alt | Keys.F4),
                             Click = new EventHandler((s, e) => { this.Close(); })
+                        }
+                    }
+                },
+                new {
+                    Name = "Edit",
+                    Menu = new dynamic[] {
+                        new {
+                            Name = "Settings",
+                            Click = new EventHandler((s, e) => {})
                         }
                     }
                 },
@@ -229,7 +301,7 @@ namespace proton {
                     Name = "View",
                     Menu = new dynamic[] {
                         new {
-                            Name = "Toggle File System",
+                            Name = "Toggle File System#Ctrl + M",
                             Accelerator = (Keys.Control | Keys.M),
                             Click = new EventHandler((s, e) => {
                                 FileSystem.Visible = FileSystem.Visible ? false : true;
@@ -244,31 +316,20 @@ namespace proton {
 
             foreach (dynamic Menu in TopMenu) {
                 Button M = Titlebar.AddMenuButton(Menu.Name);
-                //ContextMenuStrip M_CM = new ContextMenuStrip();
 
                 foreach (dynamic Sub in Menu.Menu) {
                     try {
                         var T = Sub.Type;
-                        
-                        /*switch (T) {
-                            case "Separator":
-                                M_CM.Items.Add(new ToolStripSeparator());
-                                break;
-                        }*/
                     } catch (RuntimeBinderException) {
-                        //var Item = new ToolStripMenuItem(Sub.Name, null, Sub.Click);
                         try {
-                            //Item.ShortcutKeys = Sub.Accelerator;
                             ShortCuts.Add(new { A = Sub.Accelerator, C = Sub.Click });
                         } catch (Exception) {}
-                        //M_CM.Items.Add(Item);
                     }
                 }
 
                 // M.Click += (s, e) => M_CM.Show(new Point(this.Left + M.Left, this.Top + Style.TitlebarSize));
                 M.Click += (s, e) => {
-                    var m = new MenuWindow(this, Menu.Menu);
-                    this.Controls.Add(m);
+                    var m = new MenuWindow(this, Menu.Menu, true, new Point(M.Left, Style.TitlebarSize));
                     m.BringToFront();
                 };
             }
@@ -278,7 +339,11 @@ namespace proton {
             Base.Controls.Add(FileSystem);
             Base.Controls.Add(Titlebar);
             Base.Controls.Add(Bottom);
-
+/*
+            Base.Paint += (s, e) => {
+                Style.DrawShadow(e.Graphics, Color.Black, this.BackColor, new Rectangle(100, 100, 200, 200), 20);
+            };
+*/
             this.Controls.Add(Base);
 
             this.MenuCloseControlAdd(this, this);
@@ -293,9 +358,10 @@ namespace proton {
             c.MouseDown += (s, e) => CloseAllMenus(Base);
         }
 
-        public static void CloseAllMenus(Control Base) {
-            foreach (Control mw in Base.Controls.Find("__MenuWindow", true))
-                mw.Dispose();
+        public static void CloseAllMenus(Control Base, int _lvl = 0) {
+            foreach (MenuWindow mw in Base.Controls.Find("__MenuWindow", true))
+                if (mw.Level >= _lvl)
+                    mw.Dispose();
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {

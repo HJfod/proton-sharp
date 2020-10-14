@@ -42,13 +42,13 @@ namespace proton {
                                     this.SelectionStart = ss[0];
                                     this.SelectionLength = ss[1];
                                     e.Handled = true;
+                                    e.SuppressKeyPress = true;
                                 }
                             } catch (Exception) {};
                             break;
                         /* default: #### NEED TO FIGURE OUT SOME WAY TO GET THE ANNOYING BEEP SOUND TO NOT PLAY EVERY TIME YOU PRESS ARROW KEYS, THIS DOES NOT WORK ####
                             this.Text = this.Text.Insert(this.SelectionStart, e.KeyValue);
                             e.Handled = true;
-                            e.SuppressKeyPress = true;
                             break; //*/
                     }
                 };
