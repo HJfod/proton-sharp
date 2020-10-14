@@ -42,8 +42,6 @@ namespace proton {
         public List<dynamic> ShortCuts = new List<dynamic>{};
         public Elements.Textarea Editor;
 
-        public List<Dictionary<string, string>> OpenDocuments = new List<Dictionary<string, string>> {};
-
         private void MaxNomWindow(Form OG) {
             OG.WindowState = OG.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
         }
@@ -386,45 +384,45 @@ namespace proton {
             this.CenterToScreen();
         }
 
-        public void SelectTab(int _ix) {
-            int _last = 0;
-            int i = 0;
-            foreach (Elements.Tab t in this.Controls.Find("__tabs", true)[0].Controls.Find("__tab", true)) {
-                if (t.Selected) _last = i;
-                i++;
-                t.Selected = t.Index == _ix ? true : false;
+        public void SelectTab(int _id) {
+            foreach (Elements.Tab t in this.Controls.Find("__tab", true)) {
+                if (t.Selected)
+                    t.FileContent = Editor.Text;
+                t.Selected = t.ID == _id ? true : false;
                 t.Invalidate();
             }
-            this.OpenDocuments[_last]["Content"] = Editor.Text;
-            Editor.Text = this.OpenDocuments[_ix]["Content"];
+            Editor.Text = ((Elements.Tab)this.Controls.Find("__tab", true)[_id]).FileContent;
+        }
+
+        private bool CheckTabIDAvailability(int _id) {
+            bool f = false;
+            foreach (Elements.Tab t in this.Controls.Find("__tab", true))
+                if (t.ID == _id) f = true;
+            return f;
         }
 
         public void AddTab(string _name = "", string _content = "") {
-            int ix = this.OpenDocuments.Count;
-            this.OpenDocuments.Add(new Dictionary<string, string> () {
-                { "Name", _name },
-                { "Content", _content },
-                { "Index", ix.ToString() }
-            });
+            int id = this.Controls.Find("__tab", true).Length;
 
-            Elements.Tab Tab = new Elements.Tab(_name, ix);
+            while (CheckTabIDAvailability(id)) id++;
 
-            Tab.Click += (s, e) => SelectTab(ix);
+            Elements.Tab Tab = new Elements.Tab(_name, _content, id);
+
+            Tab.Click += (s, e) => SelectTab(id);
 
             Tab.AddContextMenu(this, new dynamic[] {
                 new {
                     Name = "Close#Ctrl + W",
                     Click = new EventHandler((s, e) => {
                         Tab.Dispose();
-                        this.OpenDocuments.RemoveAt(ix);
-                        SelectTab(this.OpenDocuments.Count - 1);
+                        SelectTab(this.Controls.Find("__tab", true).Length - 1);
                     })
                 }
             });
 
             this.Controls.Find("__tabs", true)[0].Controls.Add(Tab);
 
-            SelectTab(ix);
+            SelectTab(id);
         }
 
         private void MenuCloseControlAdd(Control c, Form Base) {

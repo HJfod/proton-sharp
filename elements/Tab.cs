@@ -8,13 +8,15 @@ namespace proton {
             private bool _hovering = false;
             private Color HoverColor;
             public string FileName = "";
+            public string FileContent = "";
             public bool Selected = false;
-            public int Index = 0;
+            public int ID = 0;
             private string Extention = "";
 
-            public Tab(string _text = "", int _ix = 0) {
+            public Tab(string _text = "", string _cont = "", int _id = 0) {
                 this.Text = _text;
-                this.Index = _ix;
+                this.FileContent = _cont;
+                this.ID = _id;
                 this.Name = "__tab";
                 this.AutoSize = true;
                 this.Height = Style.TabHeight;
