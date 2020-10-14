@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Dynamic;
 using Microsoft.CSharp.RuntimeBinder;
 
 namespace proton {
@@ -22,6 +24,14 @@ namespace proton {
         }
     }
 
+    public static class Ext {
+        public static string Project = "ptd";           // (proton document)
+        public static string Userdata = "ptu";          // (proton user)
+        public static string Data = "pta";              // (proton app)
+        public static string DefaultFile = $"Unnamed.{Project}";
+        public static string Filter = $"Proton documents (*.ptd)|*.ptd|Accepted types (*.ptd;*.txt)|*.txt;*.ptd|All files (*.*)|*.*";
+    }
+
     public partial class Main : Form {
         public int FileSystemSize = 200;
         public (int, int) FileSystemSizeLimits = (100, 300);
@@ -30,13 +40,16 @@ namespace proton {
 
         public dynamic[] TopMenu;
         public List<dynamic> ShortCuts = new List<dynamic>{};
+        public Elements.Textarea Editor;
+
+        public List<Dictionary<string, string>> OpenDocuments = new List<Dictionary<string, string>> {};
 
         private void MaxNomWindow(Form OG) {
             OG.WindowState = OG.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
         }
 
         public void NewFile(object s, EventArgs e) {
-            MessageBox.Show("save", "save");
+            AddTab(Ext.DefaultFile);
         }
 
         public void SaveFile(object s, EventArgs e, bool _SaveAs = false) {
@@ -44,7 +57,18 @@ namespace proton {
         }
 
         public void OpenFile(object s, EventArgs e) {
+            using (OpenFileDialog fd = new OpenFileDialog()) {
+                fd.InitialDirectory = "c:\\";
+                fd.Filter = Ext.Filter;
+                fd.FilterIndex = 0;
+                fd.Multiselect = true;
+                fd.RestoreDirectory = true;
+                fd.DefaultExt = Ext.Project;
 
+                if (fd.ShowDialog() == DialogResult.OK)
+                    foreach (string file in fd.FileNames)
+                        this.AddTab(Path.GetFileName(file), File.ReadAllText(file));
+            }
         }
 
         public Main() {
@@ -146,17 +170,18 @@ namespace proton {
             EditorContainer.Left = FileSystemSize + Style.DraggerWidth;
             EditorContainer.Dock = DockStyle.Fill;
 
-            Panel TabContainer = new Panel();
+            FlowLayoutPanel TabContainer = new FlowLayoutPanel();
             TabContainer.Dock = DockStyle.Top;
             TabContainer.Height = Style.TabHeight;
             TabContainer.BackColor = Style.Colors.TabBG;
+            TabContainer.Name = "__tabs";
 
             Panel EditorPadding = new Panel();
             EditorPadding.Dock = DockStyle.Fill;
             EditorPadding.BackColor = Style.Colors.BG;
             EditorPadding.Padding = Style.Padding;
 
-            Elements.Textarea Editor = new Elements.Textarea();
+            Editor = new Elements.Textarea();
             Editor.Left = FileSystemSize + Style.DraggerWidth;
             Editor.Dock = DockStyle.Fill;
             Editor.BackColor = Style.Colors.BG;
@@ -247,6 +272,13 @@ namespace proton {
                 }
             });
 
+            TabContainer.AddContextMenu(this, new dynamic[] {
+                new {
+                    Name = "New Document#Ctrl + N",
+                    Click = new EventHandler(NewFile)
+                }
+            });
+
             EditorPadding.Controls.Add(Editor);
 
             EditorContainer.Controls.Add(EditorPadding);
@@ -263,7 +295,8 @@ namespace proton {
                         },
                         new {
                             Name = "Open File#Ctrl + O",
-                            Click = new EventHandler(this.OpenFile)
+                            Click = new EventHandler(this.OpenFile),
+                            Accelerator = (Keys.Control | Keys.O)
                         },
                         new {
                             Name = "Save File#Ctrl + S",
@@ -348,7 +381,50 @@ namespace proton {
 
             this.MenuCloseControlAdd(this, this);
 
+            AddTab(Ext.DefaultFile);
+
             this.CenterToScreen();
+        }
+
+        public void SelectTab(int _ix) {
+            int _last = 0;
+            int i = 0;
+            foreach (Elements.Tab t in this.Controls.Find("__tabs", true)[0].Controls.Find("__tab", true)) {
+                if (t.Selected) _last = i;
+                i++;
+                t.Selected = t.Index == _ix ? true : false;
+                t.Invalidate();
+            }
+            this.OpenDocuments[_last]["Content"] = Editor.Text;
+            Editor.Text = this.OpenDocuments[_ix]["Content"];
+        }
+
+        public void AddTab(string _name = "", string _content = "") {
+            int ix = this.OpenDocuments.Count;
+            this.OpenDocuments.Add(new Dictionary<string, string> () {
+                { "Name", _name },
+                { "Content", _content },
+                { "Index", ix.ToString() }
+            });
+
+            Elements.Tab Tab = new Elements.Tab(_name, ix);
+
+            Tab.Click += (s, e) => SelectTab(ix);
+
+            Tab.AddContextMenu(this, new dynamic[] {
+                new {
+                    Name = "Close#Ctrl + W",
+                    Click = new EventHandler((s, e) => {
+                        Tab.Dispose();
+                        this.OpenDocuments.RemoveAt(ix);
+                        SelectTab(this.OpenDocuments.Count - 1);
+                    })
+                }
+            });
+
+            this.Controls.Find("__tabs", true)[0].Controls.Add(Tab);
+
+            SelectTab(ix);
         }
 
         private void MenuCloseControlAdd(Control c, Form Base) {

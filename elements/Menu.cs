@@ -91,7 +91,7 @@ namespace proton {
                             }
                         };
                     }
-                    
+
                     if (b.Text.Contains("#")) b.Text = b.Text.Replace("#", "   #");
 
                     this.Controls.Add(b);

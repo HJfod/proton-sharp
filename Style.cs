@@ -28,7 +28,7 @@ namespace proton {
         public static int UITextSize = _S(10);
         public static int MenuTextSize = _S(8);
         public static int MenuPadding = _S(8);
-        public static int MenuDefWidth = _S(10);
+        public static int MenuDefWidth = _S(20);
         public static Padding Padding = new Padding(PaddingSize);
         public static dynamic Fonts = new ExpandoObject();
 

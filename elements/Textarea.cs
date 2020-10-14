@@ -13,13 +13,16 @@ namespace proton {
                 this.DoubleBuffered = true;
 
                 this.KeyDown += (s, e) => {
+                    if (Control.ModifierKeys == Keys.Control) {
+                        e.SuppressKeyPress = true;
+                    }
                     switch (e.KeyCode) {
                         case Keys.Enter:
                             try {
                                 string curr = this.Lines[this.GetLineFromCharIndex(this.SelectionStart)];
                                 this.SelectedText = "\n"
-                                + new String('\t', curr.Count(f => f == '\t'))
-                                + new String(' ',  curr.TakeWhile(c => c == ' ').Count());
+                                    + new String('\t', curr.Count(f => f == '\t'))
+                                    + new String(' ',  curr.TakeWhile(c => c == ' ').Count());
                                 e.Handled = true;
                             } catch (Exception) {};
                             break;
