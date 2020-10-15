@@ -5,10 +5,21 @@ using System.Drawing;
 
 namespace proton {
     namespace Elements {
+        public class TinyOption : Option {
+            public TinyOption(string _txt, Color _c, Color _h, SHandler _e) : base(_txt, _c, _h) {
+                this.Size = new Size(20, 20);
+                this._Pad = 0;
+                this._Centered = true;
+                this.Click += (s, e) => _e(this, new SEventArgs(this.Text));
+            }
+        };
+        
         public class Option : Button {
             private bool _hovering = false;
             private string _shortcut = "";
             private Color HoverColor;
+            public int _Pad = Style.MenuPadding;
+            public bool _Centered = false;
 
             public Option(string _txt, Color _c, Color _ch) {
                 this.Text = _txt;
@@ -29,7 +40,7 @@ namespace proton {
                     this.Text = this.Text.Substring(0, this.Text.IndexOf("#"));
                 }
 
-                Rectangle r = new Rectangle(Style.MenuPadding, 0, this.Width - Style.MenuPadding * 2, this.Height);
+                Rectangle r = new Rectangle(_Pad, 0, this.Width - _Pad * 2, this.Height);
 
                 Font M = new Font(Style.Fonts.UI, Style.MenuTextSize);
 
@@ -40,6 +51,7 @@ namespace proton {
 
                 StringFormat sf = new StringFormat(StringFormatFlags.DirectionRightToLeft);
                 sf.LineAlignment = StringAlignment.Center;
+                if (_Centered) sf.Alignment = StringAlignment.Center;
                 if (this._shortcut != "")
                     e.Graphics.DrawString(this._shortcut, M, new SolidBrush(Style.Colors.TextDark), r, sf);
             }
@@ -63,6 +75,16 @@ namespace proton {
                     switch (T) {
                         case "Separator":
                             this.Controls.Add(new Elements.Separator(this.Width - Style.MenuPadding * 2, Style.MenuPadding, this.HoverColor));
+                            break;
+                        case "Table":
+                            TableLayoutPanel p = new TableLayoutPanel();
+                            p.AutoSize = true;
+                            p.ColumnCount = Sub.Width;
+                            p.RowCount = (int)Math.Ceiling((Decimal)Sub.Contents.Length / (Decimal)Sub.Width);
+                            foreach (string s in Sub.Contents) {
+                                p.Controls.Add(new Elements.TinyOption(s, this.BackColor, this.HoverColor, Sub.Click));
+                            }
+                            this.Controls.Add(p);
                             break;
                     }
                 } catch (Exception) {
@@ -131,7 +153,7 @@ namespace proton {
             _par.Controls.Add(this);
 
             foreach (Control b in this.Controls)
-                b.Width = b is Elements.Separator ? max - Style.MenuPadding * 2 : max;
+                b.Width = b is Elements.TinyOption ? 10 : b is Elements.Separator ? max - Style.MenuPadding * 2 : max;
 
             if (this.Left + this.ClientRectangle.Width > _par.Width)
                 this.Left -= this.ClientRectangle.Width;

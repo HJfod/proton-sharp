@@ -32,8 +32,49 @@ namespace proton {
         public static string Theme = "ptt";             // (proton theme)
         public static string DefaultFile = $"Unnamed.{Project}";
         public static string Filter = $"Proton documents (*.ptd)|*.ptd|Accepted types (*.ptd;*.txt)|*.txt;*.ptd|All files (*.*)|*.*";
+        public static string UserdataFilename = $"user/user.{Userdata}";
+        public static Encoding Enc = Encoding.UTF8;
+        public static string UFold = "user";
     }
 
+    public static class Dat {
+        public static string[] _User;
+        public static void SaveToUserData(string _key, string _val) {
+            if (!File.Exists(Ext.UserdataFilename)) File.WriteAllText(Ext.UserdataFilename, "", Ext.Enc);
+            string newData = "";
+            foreach (string f in File.ReadAllLines(Ext.UserdataFilename, Ext.Enc))
+                newData += f.Trim().StartsWith(_key) ? "" : $"{f}\n";
+            newData += $"{_key}: {_val}\n";
+            File.WriteAllText(Ext.UserdataFilename, newData, Ext.Enc);
+        }
+
+        public static void LoadUserData() {
+            if (File.Exists(Ext.UserdataFilename))
+                _User = File.ReadAllLines(Ext.UserdataFilename, Ext.Enc);
+        }
+
+        public static string GetUserDataKey(string _key) {
+            if (_User != null)
+                foreach (string f in _User)
+                    if (f.Trim().StartsWith(_key)) return f.Substring(f.IndexOf(":") + 1).Trim();
+            return "";
+        }
+
+        public static string[] LoadSymbols() {
+            return File.ReadAllText($"{Ext.UFold}/symbols.{Ext.Data}", Ext.Enc).Split(" ");
+        }
+    }
+
+    public class SEventArgs : EventArgs {
+        public SEventArgs(string message) {
+            Message = message;
+        }
+
+        public string Message { get; set; }
+    }
+
+    public delegate void SHandler (object Sender, SEventArgs e);
+    
     public partial class Main : Form {
         public int FileSystemSize = 200;
         public (int, int) FileSystemSizeLimits = (100, 300);
@@ -57,9 +98,17 @@ namespace proton {
                                 if (!t.Contains("="))
                                     _style.Add(t.Substring(0, t.IndexOf(" ")), $"#{t.Substring(t.LastIndexOf(" ") + 1)}");
                             Style.LoadStyle(_style, this);
+                            Dat.SaveToUserData("theme", File.ReadAllLines(f)[0].Split("=")[1]);
                         })
                     });
             this.Themes = _t.ToArray<dynamic>();
+        }
+
+        public void LoadTheme(string _name) {
+            foreach (dynamic t in this.Themes) {
+                if (t.Name == _name)
+                    t.Click(this, new EventArgs());
+            }
         }
 
         private void MaxNomWindow(Form OG) {
@@ -90,7 +139,10 @@ namespace proton {
         }
 
         public Main() {
-            LoadThemes();
+            this.LoadThemes();
+            Dat.LoadUserData();
+            this.LoadTheme(Dat.GetUserDataKey("theme"));
+            string[] Symbols = Dat.LoadSymbols();
 
             this.Size = Settings.DefaultSize;
             this.Text = $"{Settings.AppName} {Settings.AppVerString} {Settings.AppVerNum}";
@@ -254,11 +306,18 @@ namespace proton {
                     Menu = new dynamic[] {
                         new {
                             Name = "Symbol",
-                            Menu = new dynamic[] {}
+                            Menu = new dynamic[] {
+                                new {
+                                    Type = "Table",
+                                    Width = 8,
+                                    Contents = Symbols,
+                                    Click = new SHandler((s, e) => Editor.SelectedText += e.Message)
+                                }
+                            }
                         },
                         new {
-                            Name = "Image",
-                            Click = new EventHandler((s, e) => {})
+                            Name = "Phrase",
+                            Menu = new dynamic[] {}
                         }
                     }
                 },
@@ -383,6 +442,7 @@ namespace proton {
                                     Name = "Theme",
                                     Menu = Themes
                                 },
+                                new { Type = "Separator" },
                                 new {
                                     Name = "Settings",
                                     Click = new EventHandler((s, e) => {})
