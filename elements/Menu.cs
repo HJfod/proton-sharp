@@ -76,7 +76,7 @@ namespace proton {
                         b.Click += (s, e) => {
                             Main.CloseAllMenus(_par, this.Level + 1);
 
-                            MenuWindow m = new MenuWindow(_par, subm, false,
+                            MenuWindow m = new MenuWindow(_par, subm, this.isTop,
                                 new Point(this.Location.X + this.Width, this.Location.Y + b.Top), this.Level + 1);
                             _par.Controls.Add(m);
                             m.BringToFront();
@@ -104,6 +104,7 @@ namespace proton {
 
         public int Level;
         public Color HoverColor;
+        public bool isTop = false;
 
         public MenuWindow(Control _par, dynamic[] _menu, bool _isTop = false, Point? _loc = null, int _level = 0) {
             this.Name = "__MenuWindow";
@@ -114,6 +115,7 @@ namespace proton {
             this.Paint += (s, e) => {
                 e.Graphics.DrawRectangle(new Pen(new SolidBrush(Style.Colors.MenuBorder)), 0, 0, this.Width - 1, this.Height - 1);
             };
+            isTop = _isTop;
             
             this.Location = _loc == null ? new Point(
                 Cursor.Position.X - _par.Left,

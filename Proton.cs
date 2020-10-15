@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Dynamic;
+using System.Text.RegularExpressions;
 using Microsoft.CSharp.RuntimeBinder;
 
 namespace proton {
@@ -28,6 +29,7 @@ namespace proton {
         public static string Project = "ptd";           // (proton document)
         public static string Userdata = "ptu";          // (proton user)
         public static string Data = "pta";              // (proton app)
+        public static string Theme = "ptt";             // (proton theme)
         public static string DefaultFile = $"Unnamed.{Project}";
         public static string Filter = $"Proton documents (*.ptd)|*.ptd|Accepted types (*.ptd;*.txt)|*.txt;*.ptd|All files (*.*)|*.*";
     }
@@ -41,6 +43,24 @@ namespace proton {
         public dynamic[] TopMenu;
         public List<dynamic> ShortCuts = new List<dynamic>{};
         public Elements.Textarea Editor;
+        public dynamic[] Themes;
+
+        private void LoadThemes() {
+            List<dynamic> _t = new List<dynamic> ();
+            foreach (string f in Directory.GetFiles("resources/themes"))
+                if (f.EndsWith(Ext.Theme))
+                    _t.Add(new {
+                        Name = File.ReadAllLines(f)[0].Split("=")[1],
+                        Click = new EventHandler((s, e) => {
+                            IDictionary<string, Object> _style = new ExpandoObject() as IDictionary<string, Object>;
+                            foreach (string t in File.ReadAllLines(Path.GetFullPath(f)))
+                                if (!t.Contains("="))
+                                    _style.Add(t.Substring(0, t.IndexOf(" ")), $"#{t.Substring(t.LastIndexOf(" ") + 1)}");
+                            Style.LoadStyle(_style, this);
+                        })
+                    });
+            this.Themes = _t.ToArray<dynamic>();
+        }
 
         private void MaxNomWindow(Form OG) {
             OG.WindowState = OG.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
@@ -70,6 +90,8 @@ namespace proton {
         }
 
         public Main() {
+            LoadThemes();
+
             this.Size = Settings.DefaultSize;
             this.Text = $"{Settings.AppName} {Settings.AppVerString} {Settings.AppVerNum}";
             this.DoubleBuffered = true;
@@ -181,10 +203,14 @@ namespace proton {
             Editor.Left = FileSystemSize + Style.DraggerWidth;
             Editor.Dock = DockStyle.Fill;
             Editor.BackColor = Style.Colors.BG;
-            Editor.Font = new Font("Segoe UI Light", Style.EditorTextSize);
+            Editor.Font = new Font(Style.EditorFont, Style.EditorTextSize);
             Editor.ForeColor = Style.Colors.Text;
             Editor.TextChanged += (s, e) => {
-                Bottom.UpdateWordCount(Editor.Text.Split(" ").Length);
+                Bottom.UpdateWordCount(
+                    Regex.IsMatch(Editor.Text, @"^\s*$") ? 0 : Regex.Replace(Editor.Text, @"\s+", " ").Trim().Split(" ").Length,
+                    Editor.Text.Length,
+                    Regex.Replace(Editor.Text, @"\s+", "").Length
+                );
             };
 
             Editor.AddContextMenu(this, new dynamic[] {
@@ -206,15 +232,16 @@ namespace proton {
                     Menu = new dynamic[] {
                         new {
                             Name = "Bold#Ctrl + B",
-                            Click = new EventHandler((s, e) => {})
+                            Accelerator = (Keys.Control | Keys.B),
+                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Bold))
                         },
                         new {
                             Name = "Italics#Ctrl + I",
-                            Click = new EventHandler((s, e) => {})
+                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Italic))
                         },
                         new {
                             Name = "Underline#Ctrl + U",
-                            Click = new EventHandler((s, e) => {})
+                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Underline))
                         },
                         new {
                             Name = "Color",
@@ -283,6 +310,12 @@ namespace proton {
             EditorContainer.Controls.Add(EditorPadding);
             EditorContainer.Controls.Add(TabContainer);
 
+            void ApplyStyle(FontStyle f) {
+                Editor.SelectionFont = ((Editor.SelectionFont.Style & f) == 0) ?
+                    new Font(Style.EditorFont, Style.EditorTextSize, f) :
+                    new Font(Style.EditorFont, Style.EditorTextSize);
+            };
+
             this.TopMenu = new dynamic[] {
                 new {
                     Name = "File",
@@ -324,8 +357,37 @@ namespace proton {
                     Name = "Edit",
                     Menu = new dynamic[] {
                         new {
+                            Name = "Bold#Ctrl + B",
+                            Accelerator = (Keys.Control | Keys.B),
+                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Bold))
+                        },
+                        new {
+                            Name = "Italics#Ctrl + I",
+                            Accelerator = (Keys.Control | Keys.I),
+                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Italic))
+                        },
+                        new {
+                            Name = "Underline#Ctrl + U",
+                            Accelerator = (Keys.Control | Keys.U),
+                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Underline))
+                        },
+                        new {
+                            Name = "Color",
+                            Menu = new dynamic[] {}
+                        },
+                        new { Type = "Separator" },
+                        new {
                             Name = "Settings",
-                            Click = new EventHandler((s, e) => {})
+                            Menu = new dynamic[] {
+                                new {
+                                    Name = "Theme",
+                                    Menu = Themes
+                                },
+                                new {
+                                    Name = "Settings",
+                                    Click = new EventHandler((s, e) => {})
+                                }
+                            }
                         }
                     }
                 },
@@ -349,7 +411,7 @@ namespace proton {
             foreach (dynamic Menu in TopMenu) {
                 Button M = Titlebar.AddMenuButton(Menu.Name);
 
-                foreach (dynamic Sub in Menu.Menu) {
+                foreach (dynamic Sub in Menu.Menu)
                     try {
                         var T = Sub.Type;
                     } catch (RuntimeBinderException) {
@@ -357,9 +419,7 @@ namespace proton {
                             ShortCuts.Add(new { A = Sub.Accelerator, C = Sub.Click });
                         } catch (Exception) {}
                     }
-                }
 
-                // M.Click += (s, e) => M_CM.Show(new Point(this.Left + M.Left, this.Top + Style.TitlebarSize));
                 M.Click += (s, e) => {
                     var m = new MenuWindow(this, Menu.Menu, true, new Point(M.Left, Style.TitlebarSize));
                     m.BringToFront();
@@ -371,16 +431,17 @@ namespace proton {
             Base.Controls.Add(FileSystem);
             Base.Controls.Add(Titlebar);
             Base.Controls.Add(Bottom);
-/*
+            /*
             Base.Paint += (s, e) => {
                 Style.DrawShadow(e.Graphics, Color.Black, this.BackColor, new Rectangle(100, 100, 200, 200), 20);
             };
-*/
+            */
             this.Controls.Add(Base);
 
             this.MenuCloseControlAdd(this, this);
 
             AddTab(Ext.DefaultFile);
+            Bottom.UpdateWordCount(0, 0, 0);
 
             this.CenterToScreen();
         }
@@ -452,14 +513,13 @@ namespace proton {
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
-            foreach (dynamic k in ShortCuts) {
+            foreach (dynamic k in ShortCuts)
                 if (keyData == k.A) {
                     EventHandler temp = k.C;
-                    if (temp != null) {
+                    if (temp != null)
                         temp(this, new EventArgs());
-                    }
+                    return true;
                 }
-            }
             return base.ProcessCmdKey(ref msg, keyData);
         }
 

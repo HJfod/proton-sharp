@@ -29,8 +29,8 @@ namespace proton {
                 C.Anchor = (AnchorStyles.Left);
                 C.Dock = DockStyle.Left;
                 C.ForeColor = Style.Colors.Text;
+                C.Size = new Size(10, Style.TitlebarSize);
                 C.AutoSize = true;
-                C.Height = Style.TitlebarSize;
                 C.Font = new Font(Style.Fonts.UI, Style.TitlebarSize / (int)(3F * Style.Scale));
                 C.FlatStyle = FlatStyle.Flat;
                 C.FlatAppearance.BorderSize = 0;

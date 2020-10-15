@@ -7,6 +7,7 @@ using System.Dynamic;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.IO;
+using System.Linq;
 
 namespace proton {
     public static class Style {
@@ -29,14 +30,22 @@ namespace proton {
         public static int MenuTextSize = _S(8);
         public static int MenuPadding = _S(8);
         public static int MenuDefWidth = _S(20);
+        public static string EditorFont = "Segoe UI Light";
         public static Padding Padding = new Padding(PaddingSize);
         public static dynamic Fonts = new ExpandoObject();
 
         public static dynamic Colors = new ExpandoObject();
 
-        public static void LoadStyle(dynamic list) {
-            foreach (PropertyInfo i in list.GetType().GetProperties())
-                ((IDictionary<String, Object>)Colors)[i.Name] = (Color)ColorTranslator.FromHtml(i.GetValue(list));
+        public static void LoadStyle(dynamic list, Control _rel = null) {
+            if (list is ExpandoObject)
+                foreach (string k in ((IDictionary<String, Object>)list).Keys)
+                    ((IDictionary<String, Object>)Colors)[k] = (Color)ColorTranslator.FromHtml(((IDictionary<String, Object>)list)[k].ToString());
+            else
+                foreach (PropertyInfo i in list.GetType().GetProperties())
+                    ((IDictionary<String, Object>)Colors)[i.Name] = (Color)ColorTranslator.FromHtml(i.GetValue(list));
+
+            if (_rel != null)
+                _rel.Invalidate();
 
             PrivateFontCollection fc = new PrivateFontCollection();
             foreach (string file in Directory.GetFiles(@"resources/fonts"))
