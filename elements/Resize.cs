@@ -1,15 +1,10 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Windows;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Reflection;
 
-namespace proton {
-    public delegate void MouseMovedEvent(Point Location, bool MouseDown);
-
+namespace BorderlessResizer {
     public class GlobalMouseHandler {
         /// Massive thank you to where ever the fuck I stole this from
 
@@ -21,21 +16,27 @@ namespace proton {
 
         private delegate int HookProc(int nCode, int wParam, IntPtr lParam);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto,
-            CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         private static extern int SetWindowsHookEx(
             int idHook,
             HookProc lpfn,
             IntPtr hMod,
             int dwThreadId);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto,
-            CallingConvention = CallingConvention.StdCall)]
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
         private static extern int CallNextHookEx(
             int idHook,
             int nCode,
             int wParam,
             IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall )]
+        public static extern IntPtr SetCursor(IntPtr handle);
+
+        public const int   MOUSEEVENTF_LEFTDOWN    = 0x02;
+        public const int   MOUSEEVENTF_LEFTUP      = 0x04;
+        public const int   MOUSEEVENTF_RIGHTDOWN   = 0x08;
+        public const int   MOUSEEVENTF_RIGHTUP     = 0x10;
         
         [StructLayout(LayoutKind.Sequential)]
         private struct MouseLLHookStruct {
@@ -102,18 +103,15 @@ namespace proton {
     }
 
     public static class WindowResizer {
-        private const byte RZ_NONE      = 0;
-        private const byte RZ_LEFT      = 3;
-        private const byte RZ_UP        = 1;
-        private const byte RZ_RIGHT     = 4;
-        private const byte RZ_DOWN      = 6;
-        private const byte RZ_UPLEFT    = 4;
-        private const byte RZ_UPRIGHT   = 5;
-        private const byte RZ_DOWNRIGHT = 10;
-        private const byte RZ_DOWNLEFT  = 9;
+        private const byte RZ_NONE      = 0b0000;
+        private const byte RZ_LEFT      = 0b0001;
+        private const byte RZ_UP        = 0b0010;
+        private const byte RZ_RIGHT     = 0b0100;
+        private const byte RZ_DOWN      = 0b1000;
 
         public static void ApplyWindowResizer(this Form _form, int _grip = 10) {
             byte resizing = RZ_NONE;
+            bool resetCursor = false;
 
             byte CheckLocation (Point p) {
                 byte res = RZ_NONE;
@@ -123,6 +121,30 @@ namespace proton {
                 if (_form.Top + _form.Height > p.Y && p.Y > _form.Top + _form.Height - _grip)   res += RZ_DOWN;
                 return res;
             }
+            
+            void SetCursor(byte b) {
+                Cursor c = Cursors.Default;
+
+                if (b != RZ_NONE) {
+                    if ((RZ_LEFT | RZ_RIGHT) == (b | 0b0101))
+                        c = Cursors.SizeWE;
+                    else if ((RZ_UP | RZ_DOWN) == (b | 0b1010))
+                        c = Cursors.SizeNS;
+                    else if ((RZ_UP | RZ_LEFT) == b || (RZ_DOWN | RZ_RIGHT) == b)
+                        c = Cursors.SizeNWSE;
+                    else if ((RZ_UP | RZ_RIGHT) == b || (RZ_DOWN | RZ_LEFT) == b)
+                        c = Cursors.SizeNESW;
+                    resetCursor = false;
+                } else {
+                    if (!resetCursor) {
+                        resetCursor = true;
+                        _form.Cursor = null;
+                    }
+                }
+                
+                //GlobalMouseHandler.SetCursor(c.Handle);
+                if (!resetCursor) _form.Cursor = c;
+            }
 
             GlobalMouseHandler.SuperMouseClick += (p, d) => {
                 byte l = CheckLocation(p);
@@ -130,16 +152,21 @@ namespace proton {
             };
 
             GlobalMouseHandler.SuperMouseMove += (p, l) => {
+                SetCursor(CheckLocation(p));
+
                 if (l && resizing != RZ_NONE) {
-                    switch (resizing) {
-                        case RZ_LEFT:
-                            _form.Width += _form.Left - p.X;
-                            _form.Left = p.X;
-                            break;
-                        case RZ_RIGHT:
-                            _form.Width -= _form.Left + _form.Width - p.X;
-                            break;
+                    if ((RZ_LEFT | resizing) == resizing) {
+                        _form.Width += _form.Left - p.X;
+                        _form.Left = p.X;
                     }
+                    if ((RZ_RIGHT | resizing) == resizing)
+                        _form.Width -= _form.Left + _form.Width - p.X;
+                    if ((RZ_UP | resizing) == resizing) {
+                        _form.Height += _form.Top - p.Y;
+                        _form.Top = p.Y;
+                    }
+                    if ((RZ_DOWN | resizing) == resizing)
+                        _form.Height -= _form.Top + _form.Height - p.Y;
                 } else {
                     resizing = RZ_NONE;
                 }

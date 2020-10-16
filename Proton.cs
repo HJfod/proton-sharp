@@ -1,16 +1,13 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Dynamic;
 using System.Text.RegularExpressions;
-using Microsoft.CSharp.RuntimeBinder;
+using BorderlessResizer;
 
 namespace proton {
     public static class Methods {
@@ -153,6 +150,7 @@ namespace proton {
         public Main() {
             (new Core.DropShadow()).ApplyShadows(this);
             this.ApplyWindowResizer();
+
             this.FormBorderStyle = FormBorderStyle.None;
 
             FullReload();
@@ -632,5 +630,13 @@ namespace proton {
                 }
             return base.ProcessCmdKey(ref msg, keyData);
         }
+
+        /*protected override CreateParams CreateParams {
+            get {
+                CreateParams cp = base.CreateParams;
+                cp.Style |= 0x40000;
+                return cp;
+            }
+        }*/
     }
 }

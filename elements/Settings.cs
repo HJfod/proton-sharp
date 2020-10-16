@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using BorderlessResizer;
 
 namespace proton {
     public class SettingsWindow : Form {
@@ -13,6 +14,7 @@ namespace proton {
             this.CenterToScreen();
 
             (new Core.DropShadow()).ApplyShadows(this);
+            this.ApplyWindowResizer();
 
             this.Reload();
         }
@@ -67,7 +69,7 @@ namespace proton {
             Tabs.BackColor = Style.Colors.BGDark;
 
             Panel Con = new Panel();
-            Con.Dock = DockStyle.Bottom | DockStyle.Top;
+            Con.Dock = DockStyle.Fill;
             Con.Left = TabsWidth;
             Con.BackColor = Style.Colors.BG;
             Con.Width = this.Width - TabsWidth;
