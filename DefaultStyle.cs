@@ -13,6 +13,7 @@ public class DefaultStyle {
         Lighter             = "#666972",
         MenuBG              = "#212527",
         MenuBorder          = "#000000",
-        MenuHover           = "#414547"
+        MenuHover           = "#414547",
+        Main                = "#5291f7"
     };
 }

@@ -32,6 +32,8 @@ namespace proton {
         public static int MenuDefWidth = _S(20);
         public static int SearchBoxWidth = _S(280);
         public static int CheckBoxStroke = _S(2);
+        public static int SelectBoxHeight = _S(140);
+        public static int SelectOptionHeight = _S(25);
         public static string EditorFont = "Segoe UI Light";
         public static Padding Padding = new Padding(PaddingSize);
         public static dynamic Fonts = new ExpandoObject();
@@ -51,6 +53,8 @@ namespace proton {
 
             if (_rel != null)
                 _rel.SaveReload();
+            if (Main.SettingsWindow is SettingsWindow)
+                Main.SettingsWindow.Reload();
 
             PrivateFontCollection fc = new PrivateFontCollection();
             foreach (string file in Directory.GetFiles(@"resources/fonts"))

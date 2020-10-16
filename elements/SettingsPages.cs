@@ -4,9 +4,11 @@ using System.Windows.Forms;
 namespace proton {
     namespace SettingsWind {
         public class General : TableLayoutPanel {
-            public General() {
+            public General(Control _par) {
                 this.Name = "General";
                 this.AutoSize = true;
+                this.Size = _par.Size.Shrink(Style.PaddingSize);
+                this.Dock = DockStyle.Fill;
 
                 this.Controls.Add(new Elements.CheckBox(new Tuple<Func<bool>, Func<bool, bool>> (
                     new Func<bool>(() => { return Settings.S.CloseMenuOnDeFocus; }),
@@ -15,32 +17,40 @@ namespace proton {
             }
         }
         public class Appearance : TableLayoutPanel {
-            public Appearance() {
+            public Appearance(Control _par) {
                 this.Name = "Apperance";
                 this.AutoSize = true;
+                this.Size = _par.Size.Shrink(Style.PaddingSize);
+                this.Dock = DockStyle.Fill;
 
-                ListBox themesel = new ListBox();
+                Elements.Select themesel = new Elements.Select(this);
                 foreach (dynamic theme in Main.Themes)
-                    themesel.Items.Add(theme.Name);
-                themesel.SelectedIndexChanged += (s, e) => {
-                    Main.Themes[themesel.SelectedIndex].Click(this, new EventArgs());
+                    themesel.AddItem(theme.Name);
+                themesel.Selected += ix => {
+                    Main.Themes[ix].Click(this, new EventArgs());
                     Main.SettingsWindow.Reload(1);
                 };
+
+                this.Controls.Add(new Elements.Text("Theme"));
                 this.Controls.Add(themesel);
             }
         }
         public class Cloud : TableLayoutPanel {
-            public Cloud() {
+            public Cloud(Control _par) {
                 this.Name = "Sync";
                 this.AutoSize = true;
+                this.Size = _par.Size.Shrink(Style.PaddingSize);
+                this.Dock = DockStyle.Fill;
 
                 this.Controls.Add(new Elements.But("sick af"));
             }
         }
         public class About : TableLayoutPanel {
-            public About() {
+            public About(Control _par) {
                 this.Name = "About";
                 this.AutoSize = true;
+                this.Size = _par.Size.Shrink(Style.PaddingSize);
+                this.Dock = DockStyle.Fill;
 
                 this.Controls.Add(new Elements.Text($"{Settings.AppName}", true, 20));
                 this.Controls.Add(new Elements.Text($"Version {Settings.AppVerString} ({Settings.AppVerNum})", false, -1, true));

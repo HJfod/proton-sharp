@@ -15,6 +15,7 @@ namespace proton {
 
         public static class S {
             public static bool CloseMenuOnDeFocus = false;
+            public static uint ScrollWheelDecelerator = 1;
         }
     }
 

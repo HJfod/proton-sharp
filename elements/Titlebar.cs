@@ -7,7 +7,7 @@ namespace proton {
     namespace Elements {
         public class Titlebar : Panel {
             public static string bc = "";
-            private int[] grad = new int[] {0, 0};
+            private int[] grad = new int[] {-1, 1};
 
             public Titlebar() {}
 
@@ -35,7 +35,18 @@ namespace proton {
             }
 
             protected override void OnPaintBackground(PaintEventArgs e) {
-                e.Graphics.FillRectangle(new SolidBrush(GetTitlebarColor(true)), this.ClientRectangle);
+                e.Graphics.FillRectangle(new SolidBrush(GetTitlebarColor(true)), new Rectangle(
+                    this.ClientRectangle.X + this.ClientRectangle.Width / 2,
+                    this.ClientRectangle.Y,
+                    this.ClientRectangle.Width / 2,
+                    this.ClientRectangle.Height
+                ));
+                e.Graphics.FillRectangle(new SolidBrush(GetTitlebarColor()), new Rectangle(
+                    this.ClientRectangle.X,
+                    this.ClientRectangle.Y,
+                    this.ClientRectangle.Width / 2,
+                    this.ClientRectangle.Height
+                ));
                 e.Graphics.FillRectangle(GetTitlebarBG(), new Rectangle(
                     this.ClientRectangle.X + grad[0],
                     this.ClientRectangle.Y,
@@ -70,6 +81,7 @@ namespace proton {
                 t.Location = new Point(Style.PaddingSize / 2, 0);
                 t.Text = _title;
                 t.ForeColor = Style.Colors.Text;
+                t.BackColor = GetTitlebarColor();
                 t.Font = new Font(Style.Fonts.UI, Style.UITextSize / 1.1F);
                 t.TextAlign = ContentAlignment.MiddleLeft;
 

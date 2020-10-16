@@ -27,6 +27,9 @@ namespace proton {
             for (int ix = controls.Count - 1; ix >= 0; --ix)
                 if (dispose) controls[ix].Dispose(); else controls.RemoveAt(ix);
         }
+        public static Size Shrink(this Size _s, int _shrink) {
+            return new Size(_s.Width - _shrink, _s.Height - _shrink);
+        }
     }
 
     public static class Ext {
@@ -148,6 +151,10 @@ namespace proton {
         }
         
         public Main() {
+            (new Core.DropShadow()).ApplyShadows(this);
+            this.ApplyWindowResizer();
+            this.FormBorderStyle = FormBorderStyle.None;
+
             FullReload();
         }
 
@@ -176,12 +183,12 @@ namespace proton {
             this.Text = $"{Settings.AppName} {Settings.AppVerString} {Settings.AppVerNum}";
             this.DoubleBuffered = true;
             this.ForeColor = Color.Black;
-            this.FormBorderStyle = FormBorderStyle.None;
             this.Icon = new Icon("resources/icon.ico");
 
             Point? MovingWindow = null;
 
             Elements.Titlebar Titlebar = new Elements.Titlebar();
+            Elements.Titlebar.bc = "";
             if (Style.Colors.TitlebarBG is Color)
                 Titlebar.BackColor = Style.Colors.TitlebarBG;
             else
@@ -624,14 +631,6 @@ namespace proton {
                     return true;
                 }
             return base.ProcessCmdKey(ref msg, keyData);
-        }
-
-        protected override CreateParams CreateParams {
-            get {
-                CreateParams cp = base.CreateParams;
-                cp.Style |= 0x40000;
-                return cp;
-            }
         }
     }
 }

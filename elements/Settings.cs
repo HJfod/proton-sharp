@@ -6,16 +6,20 @@ using System.Collections.Generic;
 namespace proton {
     public class SettingsWindow : Form {
         public int TitleBarYOffset = 6;
-        private int TabsWidth = 100;
+        public int TabsWidth = 100;
 
         public SettingsWindow() {
+            this.Size = new Size(500, 400);
+            this.CenterToScreen();
+
+            (new Core.DropShadow()).ApplyShadows(this);
+
             this.Reload();
         }
 
         public void Reload(int _selectedtab = 0) {
             this.Controls.Clear(true);
-            
-            this.Size = new Size(500, 400);
+
             this.Text = $"{Settings.AppName} {Settings.AppVerString} {Settings.AppVerNum}";
             this.DoubleBuffered = true;
             this.ForeColor = Color.Black;
@@ -28,7 +32,10 @@ namespace proton {
             Titlebar.Dock = DockStyle.Top;
             Titlebar.Top = 0;
             Titlebar.Height = Style.TitlebarSize;
-            Titlebar.BackColor = Style.Colors.TitlebarBG;
+            if (Style.Colors.TitlebarBG is Color)
+                Titlebar.BackColor = Style.Colors.TitlebarBG;
+            else
+                Elements.Titlebar.bc = Style.Colors.TitlebarBG;
             Titlebar.MouseDown += (s, e) => MovingWindow = new Point(e.X, e.Y);
             Titlebar.MouseUp += (s, e) => MovingWindow = null;
             Titlebar.MouseMove += (s, e) => {
@@ -60,15 +67,17 @@ namespace proton {
             Tabs.BackColor = Style.Colors.BGDark;
 
             Panel Con = new Panel();
-            Con.Dock = DockStyle.Fill;
+            Con.Dock = DockStyle.Bottom | DockStyle.Top;
             Con.Left = TabsWidth;
             Con.BackColor = Style.Colors.BG;
+            Con.Width = this.Width - TabsWidth;
+            Con.Padding = Style.Padding;
 
             foreach (TableLayoutPanel x in new List<TableLayoutPanel> () {
-                new SettingsWind.General(),
-                new SettingsWind.Appearance(),
-                new SettingsWind.Cloud(),
-                new SettingsWind.About()
+                new SettingsWind.General(Con),
+                new SettingsWind.Appearance(Con),
+                new SettingsWind.Cloud(Con),
+                new SettingsWind.About(Con)
             }) {
                 x.Location = new Point(TabsWidth + Style.PaddingSize, Style.PaddingSize);
 
@@ -91,21 +100,11 @@ namespace proton {
             
             ((Elements.But)Tabs.Controls[_selectedtab]).PerformClick();
 
-            Base.Controls.Add(Tabs);
             Base.Controls.Add(Con);
+            Base.Controls.Add(Tabs);
             Base.Controls.Add(Titlebar);
 
             this.Controls.Add(Base);
-
-            this.CenterToScreen();
-        }
-
-        protected override CreateParams CreateParams {
-            get {
-                CreateParams cp = base.CreateParams;
-                cp.Style |= 0x40000;
-                return cp;
-            }
         }
     }
 }

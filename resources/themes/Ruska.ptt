@@ -1,8 +1,8 @@
 Name=Ruska
-BGDark          000000
-BG              080808
+BGDark          0a0608
+BG              020202
 TabBG           040404
-TitlebarBG      ff0000 > 00ff00
+TitlebarBG      1e000a > 1e0f00
 TitlebarHover   232323
 FooterBG        000000
 Text            ffffff
@@ -13,3 +13,4 @@ Lighter         222222
 MenuBG          010507
 MenuBorder      222222
 MenuHover       202020
+Main            be909a
