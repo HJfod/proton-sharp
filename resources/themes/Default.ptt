@@ -1,4 +1,4 @@
-Name=Default
+Name=Dark
 BGDark          202225
 BG              2f3136
 TabBG           222427
@@ -9,6 +9,7 @@ Text            ffffff
 TextDark        aaaaaa
 TextSpecial     cceeff
 Light           464952
+Lighter         666972
 MenuBG          212527
 MenuBorder      000000
 MenuHover       414547

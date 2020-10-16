@@ -1,0 +1,15 @@
+Name=Light
+BGDark          dddddd
+BG              ffffff
+TabBG           cccccc
+TitlebarBG      ffffff
+TitlebarHover   dddddd
+FooterBG        cccccc
+Text            000000
+TextDark        888888
+TextSpecial     00aa55
+Light           dddddd
+Lighter         cccccc
+MenuBG          ffffff
+MenuBorder      000000
+MenuHover       dddddd

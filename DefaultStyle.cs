@@ -10,6 +10,7 @@ public class DefaultStyle {
         TextDark            = "#aaaaaa",
         TextSpecial         = "#cceeff",
         Light               = "#464952",
+        Lighter             = "#666972",
         MenuBG              = "#212527",
         MenuBorder          = "#000000",
         MenuHover           = "#414547"

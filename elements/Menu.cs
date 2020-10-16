@@ -49,11 +49,38 @@ namespace proton {
                     e.Graphics, this.Text, M, r, Style.Colors.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter
                 );
 
-                StringFormat sf = new StringFormat(StringFormatFlags.DirectionRightToLeft);
-                sf.LineAlignment = StringAlignment.Center;
-                if (_Centered) sf.Alignment = StringAlignment.Center;
-                if (this._shortcut != "")
-                    e.Graphics.DrawString(this._shortcut, M, new SolidBrush(Style.Colors.TextDark), r, sf);
+                if (this._shortcut == "--BT" || this._shortcut == "--BF") {
+                    int rs = Style.CheckBoxStroke;
+                    Rectangle rr = new Rectangle(
+                        this.ClientRectangle.Width - (int)(this.ClientRectangle.Height / 1.25),
+                        this.Height / 4,
+                        this.Height / 2,
+                        this.Height / 2
+                    );
+
+                    e.Graphics.DrawRectangle(new Pen(new SolidBrush(Style.Colors.TextDark), rs), rr);
+                    if (this._shortcut == "--BT") {
+                        Pen p = new Pen(new SolidBrush(this.BackColor), rs);
+
+                        e.Graphics.FillRectangle(new SolidBrush(Style.Colors.TextDark), rr);
+                        e.Graphics.DrawLine(
+                            p,
+                            new Point(rr.X + (int)(this.Height / 2.4), rr.Y + (int)(this.Height / 7.5)),
+                            new Point(rr.X + (int)(this.Height / 5),   rr.Y + (int)(this.Height / 3))
+                        );
+                        e.Graphics.DrawLine(
+                            p,
+                            new Point(rr.X + (int)(this.Height / 5),   rr.Y + (int)(this.Height / 3)),
+                            new Point(rr.X + (int)(this.Height / 10),   rr.Y + (int)(this.Height / 4.2))
+                        );
+                    }
+                } else {
+                    StringFormat sf = new StringFormat(StringFormatFlags.DirectionRightToLeft);
+                    sf.LineAlignment = StringAlignment.Center;
+                    if (_Centered) sf.Alignment = StringAlignment.Center;
+                    if (this._shortcut != "")
+                        e.Graphics.DrawString(this._shortcut, M, new SolidBrush(Style.Colors.TextDark), r, sf);
+                }
             }
         }
 
@@ -81,10 +108,20 @@ namespace proton {
                             p.AutoSize = true;
                             p.ColumnCount = Sub.Width;
                             p.RowCount = (int)Math.Ceiling((Decimal)Sub.Contents.Length / (Decimal)Sub.Width);
-                            foreach (string s in Sub.Contents) {
+                            foreach (string s in Sub.Contents)
                                 p.Controls.Add(new Elements.TinyOption(s, this.BackColor, this.HoverColor, Sub.Click));
-                            }
                             this.Controls.Add(p);
+                            break;
+                        case "Checkbox":
+                            Elements.Option b = new Elements.Option($"{Sub.Text}   #{(Sub.GetVar() ? "--BT" : "--BF")}", this.BackColor, this.HoverColor);
+                            b.AutoSize = true;
+                            b.Click += (s, e) => {
+                                Sub.SetVar(!Sub.GetVar());
+                                b.Text = $"{Sub.Text}   #{(Sub.GetVar() ? "--BT" : "--BF")}";
+                            };
+                            this.Controls.Add(b);
+
+                            if (b.ClientRectangle.Width > maxLength) maxLength = b.ClientRectangle.Width;
                             break;
                     }
                 } catch (Exception) {
@@ -107,7 +144,7 @@ namespace proton {
                         b.Click += Sub.Click;
                         b.Click += (s, e) => {
                             try {
-                                Sub.NoClose = true;
+                                bool x = Sub.NoClose;
                             } catch (Exception) {
                                 Main.CloseAllMenus(_par);
                             }
@@ -130,7 +167,7 @@ namespace proton {
 
         public MenuWindow(Control _par, dynamic[] _menu, bool _isTop = false, Point? _loc = null, int _level = 0) {
             this.Name = "__MenuWindow";
-            this.BackColor = _isTop ? Style.Colors.TitlebarBG : Style.Colors.MenuBG;
+            this.BackColor = _isTop ? Elements.Titlebar.GetTitlebarColor() : Style.Colors.MenuBG;
             this.HoverColor = _isTop ? Style.Colors.TitlebarHover : Style.Colors.MenuHover;
             this.ForeColor = Style.Colors.Text;
             this.Level = _level;

@@ -12,6 +12,10 @@ namespace proton {
         public static string AppName = "Proton";
         public static string AppVerString = "v0.1.0";
         public static int AppVerNum = 1;
+
+        public static class S {
+            public static bool CloseMenuOnDeFocus = false;
+        }
     }
 
     static class Program {

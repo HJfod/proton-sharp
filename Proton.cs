@@ -23,6 +23,10 @@ namespace proton {
                 }
             };
         }
+        public static void Clear(this Control.ControlCollection controls, bool dispose) {
+            for (int ix = controls.Count - 1; ix >= 0; --ix)
+                if (dispose) controls[ix].Dispose(); else controls.RemoveAt(ix);
+        }
     }
 
     public static class Ext {
@@ -84,7 +88,11 @@ namespace proton {
         public dynamic[] TopMenu;
         public List<dynamic> ShortCuts = new List<dynamic>{};
         public Elements.Textarea Editor;
-        public dynamic[] Themes;
+        public static dynamic[] Themes;
+
+        public static SettingsWindow SettingsWindow;
+
+        public Elements.SearchBox SearchBox;
 
         private void LoadThemes() {
             List<dynamic> _t = new List<dynamic> ();
@@ -92,20 +100,21 @@ namespace proton {
                 if (f.EndsWith(Ext.Theme))
                     _t.Add(new {
                         Name = File.ReadAllLines(f)[0].Split("=")[1],
+                        NoClose = true,
                         Click = new EventHandler((s, e) => {
                             IDictionary<string, Object> _style = new ExpandoObject() as IDictionary<string, Object>;
                             foreach (string t in File.ReadAllLines(Path.GetFullPath(f)))
                                 if (!t.Contains("="))
-                                    _style.Add(t.Substring(0, t.IndexOf(" ")), $"#{t.Substring(t.LastIndexOf(" ") + 1)}");
+                                    _style.Add(t.Substring(0, t.IndexOf(" ")), $"#{Regex.Replace(t, @"\s+", " ").Substring(t.IndexOf(" ") + 1)}");
                             Style.LoadStyle(_style, this);
                             Dat.SaveToUserData("theme", File.ReadAllLines(f)[0].Split("=")[1]);
                         })
                     });
-            this.Themes = _t.ToArray<dynamic>();
+            Themes = _t.ToArray<dynamic>();
         }
 
         public void LoadTheme(string _name) {
-            foreach (dynamic t in this.Themes) {
+            foreach (dynamic t in Themes) {
                 if (t.Name == _name)
                     t.Click(this, new EventArgs());
             }
@@ -137,11 +146,30 @@ namespace proton {
                         this.AddTab(Path.GetFileName(file), File.ReadAllText(file));
             }
         }
-
+        
         public Main() {
+            FullReload();
+        }
+
+        public void SaveReload() {
+            List<dynamic> _saved = new List<dynamic> ();
+            foreach (Elements.Tab tab in this.Controls.Find("__tab", true))
+                _saved.Add(new { Name = tab.FileName, Content = tab.FileContent, Selected = tab.Selected });
+            Reload(_saved);
+        }
+
+        public void FullReload() {
             this.LoadThemes();
             Dat.LoadUserData();
             this.LoadTheme(Dat.GetUserDataKey("theme"));
+            Settings.S.CloseMenuOnDeFocus = Dat.GetUserDataKey("close-menus") == "True";
+
+            Reload();
+        }
+
+        public void Reload(List<dynamic> _savedtabs = null) {
+            this.Controls.Clear(true);
+
             string[] Symbols = Dat.LoadSymbols();
 
             this.Size = Settings.DefaultSize;
@@ -154,10 +182,13 @@ namespace proton {
             Point? MovingWindow = null;
 
             Elements.Titlebar Titlebar = new Elements.Titlebar();
+            if (Style.Colors.TitlebarBG is Color)
+                Titlebar.BackColor = Style.Colors.TitlebarBG;
+            else
+                Elements.Titlebar.bc = Style.Colors.TitlebarBG;
             Titlebar.Dock = DockStyle.Top;
             Titlebar.Top = 0;
             Titlebar.Height = Style.TitlebarSize;
-            Titlebar.BackColor = Style.Colors.TitlebarBG;
             Titlebar.DoubleClick += (s, e) => MaxNomWindow(this);
             Titlebar.MouseDown += (s, e) => MovingWindow = new Point(e.X, e.Y);
             Titlebar.MouseUp += (s, e) => MovingWindow = null;
@@ -167,9 +198,9 @@ namespace proton {
                     this.Location = new Point(p2.X - ((Point)MovingWindow).X, p2.Y - ((Point)MovingWindow).Y - this.TitleBarYOffset);
                 }
             };
-            Titlebar.AddControlButton("─", (s, e) => this.WindowState = FormWindowState.Minimized);
-            Titlebar.AddControlButton("☐", (s, e) => MaxNomWindow(this));
-            Titlebar.AddControlButton("✕", (s, e) => this.Close());
+            Titlebar.AddControlButton("─", this, (s, e) => this.WindowState = FormWindowState.Minimized);
+            Titlebar.AddControlButton("☐", this, (s, e) => MaxNomWindow(this));
+            Titlebar.AddControlButton("✕", this, (s, e) => this.Close(), Color.Red);
 
             ContextMenuStrip CM = new ContextMenuStrip();
             CM.Items.Add(new ToolStripMenuItem("Minimize", null, (s, e) => this.WindowState = FormWindowState.Minimized ));
@@ -265,7 +296,7 @@ namespace proton {
                 );
             };
 
-            Editor.AddContextMenu(this, new dynamic[] {
+            dynamic[] EditMenu = new dynamic[] {
                 new {
                     Name = "Copy#Ctrl + C",
                     Click = new EventHandler((s, e) => Editor.Copy())
@@ -295,6 +326,7 @@ namespace proton {
                             Name = "Underline#Ctrl + U",
                             Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Underline))
                         },
+                        new { Type = "Separator" },
                         new {
                             Name = "Color",
                             Menu = new dynamic[] {}
@@ -314,38 +346,40 @@ namespace proton {
                                     Click = new SHandler((s, e) => Editor.SelectedText += e.Message)
                                 }
                             }
-                        },
-                        new {
-                            Name = "Phrase",
-                            Menu = new dynamic[] {}
                         }
                     }
                 },
                 new { Type = "Separator" },
                 new {
-                    Name = "Search",
-                    Click = new EventHandler((s, e) => {})
+                    Name = "Search#Ctrl + F",
+                    Click = new EventHandler((s, e) => SearchBox.Visible = true)
                 },
                 new { Type = "Separator" },
                 new {
                     Name = "Settings",
                     Menu = new dynamic[] {
                         new {
-                            Name = "yeah",
-                            Click = new EventHandler((s, e) => {})
-                        },
+                            Name = "Theme",
+                            Menu = Themes
+                        },/*
                         new {
-                            Name = "Another sub",
-                            Menu = new dynamic[] {
-                                new {
-                                    Name = "third",
-                                    Click = new EventHandler((s, e) => {})
-                                }
-                            }
+                            Type = "Checkbox",
+                            Text = "Close menu when unfocused",
+                            GetVar = new Func<bool>(() => Settings.S.CloseMenuOnDeFocus),
+                            SetVar = new Func<bool, bool>(_val => Settings.S.CloseMenuOnDeFocus = _val)
+                        },  //*/
+                        new { Type = "Separator" },
+                        new {
+                            Name = "Settings#F1",
+                            Click = new EventHandler((s, e) => OpenSettings()),
+                            Accelerator = (Keys.F1),
+                            NoClose = true
                         }
                     }
                 }
-            });
+            };
+
+            Editor.AddContextMenu(this, EditMenu);
 
             FileSystemView.AddContextMenu(this, new dynamic[] {
                 new {
@@ -414,42 +448,7 @@ namespace proton {
                 },
                 new {
                     Name = "Edit",
-                    Menu = new dynamic[] {
-                        new {
-                            Name = "Bold#Ctrl + B",
-                            Accelerator = (Keys.Control | Keys.B),
-                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Bold))
-                        },
-                        new {
-                            Name = "Italics#Ctrl + I",
-                            Accelerator = (Keys.Control | Keys.I),
-                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Italic))
-                        },
-                        new {
-                            Name = "Underline#Ctrl + U",
-                            Accelerator = (Keys.Control | Keys.U),
-                            Click = new EventHandler((s, e) => ApplyStyle(FontStyle.Underline))
-                        },
-                        new {
-                            Name = "Color",
-                            Menu = new dynamic[] {}
-                        },
-                        new { Type = "Separator" },
-                        new {
-                            Name = "Settings",
-                            Menu = new dynamic[] {
-                                new {
-                                    Name = "Theme",
-                                    Menu = Themes
-                                },
-                                new { Type = "Separator" },
-                                new {
-                                    Name = "Settings",
-                                    Click = new EventHandler((s, e) => {})
-                                }
-                            }
-                        }
-                    }
+                    Menu = EditMenu
                 },
                 new {
                     Name = "View",
@@ -468,17 +467,21 @@ namespace proton {
 
             Array.Reverse(this.TopMenu);
 
-            foreach (dynamic Menu in TopMenu) {
-                Button M = Titlebar.AddMenuButton(Menu.Name);
-
-                foreach (dynamic Sub in Menu.Menu)
+            void CheckShortCuts (dynamic[] Menu) {
+                foreach (dynamic Sub in Menu)
                     try {
-                        var T = Sub.Type;
-                    } catch (RuntimeBinderException) {
+                        CheckShortCuts(Sub.Menu);
+                    } catch (Exception) {
                         try {
                             ShortCuts.Add(new { A = Sub.Accelerator, C = Sub.Click });
                         } catch (Exception) {}
                     }
+            }
+
+            foreach (dynamic Menu in TopMenu) {
+                Button M = Titlebar.AddMenuButton(Menu.Name, this);
+
+                CheckShortCuts(Menu.Menu);
 
                 M.Click += (s, e) => {
                     var m = new MenuWindow(this, Menu.Menu, true, new Point(M.Left, Style.TitlebarSize));
@@ -498,12 +501,50 @@ namespace proton {
             */
             this.Controls.Add(Base);
 
+            SearchBox = new Elements.SearchBox(this, (s, e) => {
+                string i = SearchBox.GetInput().ToLower().Trim();
+                if (Editor.Text.ToLower().Contains(i))
+                    Editor.Select(Editor.Text.ToLower().IndexOf(i), i.Length);
+            }, new Point(this.ClientRectangle.Width - Style.SearchBoxWidth - Style.PaddingSize * 2, Style.PaddingSize * 2 + Style.TitlebarSize + Style.TabHeight));
+            SearchBox.Visible = false;
+
+            this.Controls.Add(SearchBox);
+
             this.MenuCloseControlAdd(this, this);
 
-            AddTab(Ext.DefaultFile);
-            Bottom.UpdateWordCount(0, 0, 0);
+            this.Deactivate += (s, e) => { if (Settings.S.CloseMenuOnDeFocus) CloseAllMenus(this); };
 
-            this.CenterToScreen();
+            this.FormClosed += (s, e) => {
+                Dat.SaveToUserData("close-menus", Settings.S.CloseMenuOnDeFocus.ToString());
+            };
+
+            SearchBox.BringToFront();
+
+            if (_savedtabs != null) {
+                int sel = -1;
+                int i = 0;
+                foreach (dynamic tab in _savedtabs) {
+                    Elements.Tab t = AddTab(tab.Name, tab.Content);
+                    i++;
+                    if (tab.Selected) sel = t.ID;
+                }
+                SelectTab(sel);
+            } else {
+                AddTab(Ext.DefaultFile);
+
+                Bottom.UpdateWordCount(0, 0, 0);
+
+                this.CenterToScreen();
+            }
+        }
+
+        public void OpenSettings() {
+            CloseAllMenus(this);
+            if (SettingsWindow is SettingsWindow) return;
+            SettingsWindow = new SettingsWindow();
+            SettingsWindow.Show();
+            SettingsWindow.BringToFront();
+            SettingsWindow.FormClosed += (s, e) => SettingsWindow = null;
         }
 
         public void SelectTab(int _id) {
@@ -536,7 +577,7 @@ namespace proton {
             return f;
         }
 
-        public void AddTab(string _name = "", string _content = "") {
+        public Elements.Tab AddTab(string _name = "", string _content = "") {
             int id = 0;
             while (this.CheckTabIDAvailability(id)) id++;
 
@@ -557,6 +598,8 @@ namespace proton {
             this.Controls.Find("__tabs", true)[0].Controls.Add(Tab);
 
             this.SelectTab(id);
+
+            return Tab;
         }
 
         private void MenuCloseControlAdd(Control c, Form Base) {

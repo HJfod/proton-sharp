@@ -1,8 +1,8 @@
-Name=Midnight
+Name=Ruska
 BGDark          000000
 BG              080808
 TabBG           040404
-TitlebarBG      0d0d0d
+TitlebarBG      ff0000 > 00ff00
 TitlebarHover   232323
 FooterBG        000000
 Text            ffffff
