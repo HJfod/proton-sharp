@@ -12,15 +12,26 @@ namespace proton {
                 this.AutoSize = true;
                 this.Size = _par.Size.Shrink(Style.PaddingSize);
                 this.Dock = DockStyle.Fill;
+                
+                /**
+
+                Left this as a reminder of how to setup a checkbox. The actual option doesn't even exist anymore.
 
                 this.Controls.Add(new Elements.CheckBox(new Tuple<Func<bool>, Func<bool, bool>> (
                     new Func<bool>(() => { return Settings.S.CloseMenuOnDeFocus; }),
                     new Func<bool, bool>(_val => Settings.S.CloseMenuOnDeFocus = _val)
-                ), "Close context menu(s) on Window defocus"));
+                ), "Close context menu(s) on Window defocus"));*/
+
+                this.Controls.Add(new Elements.CheckBox(new Tuple<Func<bool>, Func<bool, bool>> (
+                    new Func<bool>(() => { return Settings.S.RememberSession; }),
+                    new Func<bool, bool>(_val => Settings.S.RememberSession = _val)
+                ), "Remember Session"));
 
                 Elements.Select enc = new Elements.Select(this);
-                foreach (KeyValuePair<string, Encoding> e in Main.Encodings)
+                foreach (KeyValuePair<string, Encoding> e in Main.Encodings) {
                     enc.AddItem(e.Key);
+                    if (e.Value == Settings.S.DefaultEncoding) enc.SetDefault(e.Key);
+                }
                 enc.Selected += ix => {
                     Settings.S.DefaultEncoding = Main.Encodings.ElementAt(ix).Value;
                 };

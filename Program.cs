@@ -15,8 +15,8 @@ namespace proton {
         public static int AppVerNum = 1;
 
         public static class S {
-            public static bool CloseMenuOnDeFocus = false;
             public static uint ScrollWheelDecelerator = 1;
+            public static bool RememberSession = false;
             public static Encoding DefaultEncoding = Encoding.UTF8;
         }
     }

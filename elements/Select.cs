@@ -25,7 +25,7 @@ namespace proton {
                     _par.SelectedIndex = _index;
                     _par.FireSelectedEvent();
                     foreach (SelectItem si in _par.cont.Controls) {
-                            si.Selected = false;
+                        si.Selected = false;
                         si.Invalidate();
                     }
                     this.Selected = true;
@@ -102,6 +102,15 @@ namespace proton {
 
                 this.cont.MouseWheel += scroll;
                 this.MouseWheel += scroll;
+            }
+
+            public void SetDefault (string _val) {
+                int ix = 0;
+                foreach (SelectItem si in this.cont.Controls)
+                    if (si.Text == _val) {
+                        this.SelectedIndex = ix;
+                        si.Selected = true;
+                    } else ix++;
             }
 
             public void FireSelectedEvent() {

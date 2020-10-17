@@ -2,3 +2,4 @@ obj/
 bin/
 .vscode/
 user/user.ptu
+user/session.ptu

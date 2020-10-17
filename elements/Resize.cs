@@ -8,11 +8,12 @@ namespace BorderlessResizer {
     public class GlobalMouseHandler {
         /// Massive thank you to where ever the fuck I stole this from
 
-        private const int WM_MOUSEMOVE = 0x0200;
-        private const int WM_LBUTTONDOWN = 0x201;
-        private const int WM_LBUTTONUP = 0x202;
-        private const int MK_LBUTTON = 0x0001;
-        private const int WH_MOUSE_LL = 14;
+        private const int WM_MOUSEMOVE      = 0x0200;
+        private const int WM_LBUTTONDOWN    = 0x201;
+        private const int WM_LBUTTONUP      = 0x202;
+        private const int WM_RBUTTONDOWN    = 0x204;
+        private const int MK_LBUTTON        = 0x0001;
+        private const int WH_MOUSE_LL       = 14;
 
         private delegate int HookProc(int nCode, int wParam, IntPtr lParam);
 
@@ -29,14 +30,6 @@ namespace BorderlessResizer {
             int nCode,
             int wParam,
             IntPtr lParam);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall )]
-        public static extern IntPtr SetCursor(IntPtr handle);
-
-        public const int   MOUSEEVENTF_LEFTDOWN    = 0x02;
-        public const int   MOUSEEVENTF_LEFTUP      = 0x04;
-        public const int   MOUSEEVENTF_RIGHTDOWN   = 0x08;
-        public const int   MOUSEEVENTF_RIGHTUP     = 0x10;
         
         [StructLayout(LayoutKind.Sequential)]
         private struct MouseLLHookStruct {
@@ -50,8 +43,8 @@ namespace BorderlessResizer {
         private static void SuperMouseEventHandler(Point Location, bool MouseLeft) {}
         public static event Action<Point, bool> SuperMouseMove;
 
-        private static void SuperMouseClickEventHandler(Point Location, bool Down) {}
-        public static event Action<Point, bool> SuperMouseClick;
+        private static void SuperMouseClickEventHandler(Point Location, bool Down, bool Right) {}
+        public static event Action<Point, bool, bool> SuperMouseClick;
 
         private static int m_OldX;
         private static int m_OldY;
@@ -61,7 +54,7 @@ namespace BorderlessResizer {
 
         public static void Initialize() {
             SuperMouseMove += new Action<Point, bool>(SuperMouseEventHandler);
-            SuperMouseClick += new Action<Point, bool>(SuperMouseClickEventHandler);
+            SuperMouseClick += new Action<Point, bool, bool>(SuperMouseClickEventHandler);
 
             s_MouseDelegate = MouseHookProc;
 
@@ -82,11 +75,14 @@ namespace BorderlessResizer {
                 switch (wParam) {
                     case WM_LBUTTONDOWN:
                         m_isDown = true;
-                        SuperMouseClick(mPos, true);
+                        SuperMouseClick(mPos, true, false);
+                        break;
+                    case WM_RBUTTONDOWN:
+                        SuperMouseClick(mPos, true, true);
                         break;
                     case WM_LBUTTONUP:
                         m_isDown = false;
-                        SuperMouseClick(mPos, false);
+                        SuperMouseClick(mPos, false, false);
                         break;
                 }
 
@@ -142,11 +138,10 @@ namespace BorderlessResizer {
                     }
                 }
                 
-                //GlobalMouseHandler.SetCursor(c.Handle);
                 if (!resetCursor) _form.Cursor = c;
             }
 
-            GlobalMouseHandler.SuperMouseClick += (p, d) => {
+            GlobalMouseHandler.SuperMouseClick += (p, d, r) => {
                 byte l = CheckLocation(p);
                 if (d && resizing == RZ_NONE && l != RZ_NONE) resizing = l;
             };

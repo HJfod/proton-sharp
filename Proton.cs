@@ -7,6 +7,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Dynamic;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using BorderlessResizer;
 
 namespace proton {
@@ -37,6 +38,7 @@ namespace proton {
         public static string DefaultFile = $"Unnamed.{Project}";
         public static string Filter = $"Proton documents (*.ptd)|*.ptd|Accepted types (*.ptd;*.txt)|*.txt;*.ptd|All files (*.*)|*.*";
         public static string UserdataFilename = $"user/user.{Userdata}";
+        public static string UserdataSession = $"user/session.{Userdata}";
         public static Encoding Enc = Encoding.UTF8;
         public static string UFold = "user";
     }
@@ -50,6 +52,19 @@ namespace proton {
                 newData += f.Trim().StartsWith(_key) ? "" : $"{f}\n";
             newData += $"{_key}: {_val}\n";
             File.WriteAllText(Ext.UserdataFilename, newData, Ext.Enc);
+        }
+
+        public static void SaveSession(string[] paths) {
+            File.WriteAllLines(Ext.UserdataSession, paths, Ext.Enc);
+        }
+
+        private static string[] CheckIfSessionActuallyExists(string[] _session) {
+            if (_session.Length == 1) return null;
+            return _session;
+        }
+
+        public static string[] LoadSession() {
+            return File.Exists(Ext.UserdataSession) ? CheckIfSessionActuallyExists(File.ReadAllLines(Ext.UserdataSession, Ext.Enc)) : null;
         }
 
         public static void LoadUserData() {
@@ -85,6 +100,9 @@ namespace proton {
         public bool FileSystemVisible = false;
         public int TitleBarYOffset = 6;
 
+        public Elements.TabShadow tw;
+        public Elements.TabShadow ts;
+
         public dynamic[] TopMenu;
         public List<dynamic> ShortCuts = new List<dynamic>{};
         public Elements.Textarea Editor;
@@ -100,6 +118,13 @@ namespace proton {
         public static SettingsWindow SettingsWindow;
 
         public Elements.SearchBox SearchBox;
+
+        #region constants
+
+        private const byte F_WRITE_SUCCESS           = 0x0001;
+        private const byte F_WRITE_STREAM_FAIL       = 0x0002;
+
+        #endregion
 
         private void LoadThemes() {
             List<dynamic> _t = new List<dynamic> ();
@@ -135,11 +160,39 @@ namespace proton {
             AddTab(Ext.DefaultFile);
         }
 
-        public void SaveFile(object s, EventArgs e, bool _SaveAs = false) {
+        public async Task<byte> SaveFile(object s, EventArgs e, bool _SaveAs = false) {
+            Elements.Tab tab = this.GetSelectedTab();
+            Stream SaveStream = null;
 
+            if (tab.FilePath == "" || _SaveAs)
+                using (SaveFileDialog fd = new SaveFileDialog()) {
+                    fd.InitialDirectory = "c:\\";
+                    fd.Filter = Ext.Filter;
+                    fd.FilterIndex = 0;
+                    fd.RestoreDirectory = true;
+                    fd.DefaultExt = Ext.Project;
+
+                    if (fd.ShowDialog() == DialogResult.OK)
+                        SaveStream = fd.OpenFile();
+                }
+            else
+                SaveStream = File.OpenWrite(tab.FilePath);
+            
+            if (SaveStream != null) {
+                using (StreamWriter Saver = new StreamWriter(SaveStream)) {
+                    foreach (string line in tab.FileContent.Split("\n"))
+                        await Saver.WriteLineAsync(line);
+                }
+
+                SaveStream.Close();
+
+                return F_WRITE_SUCCESS;
+            }
+
+            return F_WRITE_STREAM_FAIL;
         }
 
-        public void OpenFile(object s, EventArgs e) {
+        public async void OpenFile(object s, EventArgs e) {
             using (OpenFileDialog fd = new OpenFileDialog()) {
                 fd.InitialDirectory = "c:\\";
                 fd.Filter = Ext.Filter;
@@ -150,7 +203,7 @@ namespace proton {
 
                 if (fd.ShowDialog() == DialogResult.OK)
                     foreach (string file in fd.FileNames)
-                        this.AddTab(Path.GetFileName(file), File.ReadAllText(file));
+                        this.AddTab(Path.GetFileName(file), await File.ReadAllTextAsync(file, Settings.S.DefaultEncoding), Path.GetFullPath(file));
             }
         }
         
@@ -161,8 +214,12 @@ namespace proton {
             this.FormBorderStyle = FormBorderStyle.None;
 
             this.FormClosed += (s, e) => {
-                Dat.SaveToUserData("close-menus", Settings.S.CloseMenuOnDeFocus.ToString());
-                Dat.SaveToUserData("encoding", Settings.S.DefaultEncoding.EncodingName);
+                Dat.SaveToUserData("encoding", Settings.S.DefaultEncoding.CodePage.ToString());
+
+                List<string> paths = new List<string> ();
+                foreach (Elements.Tab t in this.Controls.Find("__tab", true))
+                    if (t.FilePath != "") paths.Add(t.FilePath);
+                Dat.SaveSession(paths.ToArray());
             };
 
             FullReload();
@@ -179,7 +236,7 @@ namespace proton {
             this.LoadThemes();
             Dat.LoadUserData();
             this.LoadTheme(Dat.GetUserDataKey("theme"));
-            Settings.S.CloseMenuOnDeFocus = Dat.GetUserDataKey("close-menus") == "True";
+            Settings.S.DefaultEncoding = Encoding.GetEncoding(Dat.GetUserDataKey("encoding") == "" ? 0 : Int32.Parse(Dat.GetUserDataKey("encoding")));
 
             Reload();
         }
@@ -196,6 +253,8 @@ namespace proton {
             this.Icon = new Icon("resources/icon.ico");
 
             Point? MovingWindow = null;
+
+            #region all this dumb shit
 
             Elements.Titlebar Titlebar = new Elements.Titlebar();
             Elements.Titlebar.bc = "";
@@ -293,6 +352,8 @@ namespace proton {
             TabContainer.Height = Style.TabHeight;
             TabContainer.BackColor = Style.Colors.TabBG;
             TabContainer.Name = "__tabs";
+
+            #endregion
 
             Panel EditorPadding = new Panel();
             EditorPadding.Dock = DockStyle.Fill;
@@ -412,16 +473,26 @@ namespace proton {
                     Type = "List",
                     Text = "Encoding",
                     GetVar = new Func<Encoding>(() => {
-                        foreach (Elements.Tab t in this.Controls.Find("__tab", true))
-                            if (t.Selected) return t.Encoding;
-                        return null;
+                        return this.GetSelectedTab().Encoding;
                     }),
                     SetVar = new Func<Encoding, bool>(_val => {
-                        foreach (Elements.Tab t in this.Controls.Find("__tab", true))
-                            if (t.Selected) t.Encoding = _val;
+                        Elements.Tab t = this.GetSelectedTab();
+                        t.Encoding = _val;
+                        ReloadTab(t);
                         return true;
                     }),
                     List = EncoSelect.ToArray()
+                },
+                new { Type = "Separator" },
+                new {
+                    Name = "Move right#Alt + Right",
+                    Accelerator = (Keys.Alt | Keys.Right),
+                    Click = new EventHandler((s, e) => this.MoveTab(this.GetSelectedTab(), 1))
+                },
+                new {
+                    Name = "Move left#Alt + Left",
+                    Accelerator = (Keys.Alt | Keys.Left),
+                    Click = new EventHandler((s, e) => this.MoveTab(this.GetSelectedTab(), -1))
                 },
                 new { Type = "Separator" },
                 new {
@@ -485,11 +556,27 @@ namespace proton {
                         },
                         new {
                             Name = "Save File#Ctrl + S",
-                            Click = new EventHandler((s, e) => this.SaveFile(s, e))
+                            Accelerator = (Keys.Control | Keys.S),
+                            Click = new EventHandler(async (s, e) => {
+                                switch (await this.SaveFile(s, e)) {
+                                    case F_WRITE_SUCCESS: break;
+                                    case F_WRITE_STREAM_FAIL:
+                                        MessageBox.Show($"File stream failed. Error Code: {F_WRITE_STREAM_FAIL}", "Error");
+                                        break;
+                                }
+                            })
                         },
                         new {
                             Name = "Save as#Ctrl + Shift + S",
-                            Click = new EventHandler((s, e) => this.SaveFile(s, e, true))
+                            Accelerator = (Keys.Control | Keys.Shift | Keys.S),
+                            Click = new EventHandler(async (s, e) => {
+                                switch (await this.SaveFile(s, e, true)) {
+                                    case F_WRITE_SUCCESS: break;
+                                    case F_WRITE_STREAM_FAIL:
+                                        MessageBox.Show($"File stream failed. Error Code: {F_WRITE_STREAM_FAIL}", "Error");
+                                        break;
+                                }
+                            })
                         },
                         new { Type = "Separator" },
                         new {
@@ -574,11 +661,25 @@ namespace proton {
 
             this.Controls.Add(SearchBox);
 
-            this.MenuCloseControlAdd(this, this);
+            bool CheckCursorInside(Point _c, Rectangle _r, Point _p) {
+                return _r.Contains(new Point(_c.X - this.Left - _p.X, _c.Y - this.Top - _p.Y));
+            }
 
-            this.Deactivate += (s, e) => { if (Settings.S.CloseMenuOnDeFocus) CloseAllMenus(this); };
+            GlobalMouseHandler.SuperMouseClick += (p, d, r) => {
+                foreach (MenuWindow mw in this.Controls.Find("__MenuWindow", true))
+                    if (CheckCursorInside(p, mw.ClientRectangle, mw.Location)) return;
+                if (d) CloseAllMenus(this);
+            };
 
             SearchBox.BringToFront();
+
+            ts = new Elements.TabShadow();
+            this.Controls.Add(ts);
+            ts.BringToFront();
+
+            tw = new Elements.TabShadow();
+            this.Controls.Add(tw);
+            tw.BringToFront();
 
             if (_savedtabs != null) {
                 int sel = -1;
@@ -590,11 +691,17 @@ namespace proton {
                 }
                 SelectTab(sel);
             } else {
-                AddTab(Ext.DefaultFile);
+                string[] files = Dat.LoadSession();
+                if (files != null)
+                    foreach (string file in files)
+                        AddTab(Path.GetFileName(file), File.ReadAllText(file), file);
+                else 
+                    AddTab(Ext.DefaultFile);
 
                 Bottom.UpdateWordCount(0, 0, 0);
 
                 this.CenterToScreen();
+
             }
         }
 
@@ -605,6 +712,14 @@ namespace proton {
             SettingsWindow.Show();
             SettingsWindow.BringToFront();
             SettingsWindow.FormClosed += (s, e) => SettingsWindow = null;
+        }
+
+        #region tabs
+
+        public Elements.Tab GetSelectedTab() {
+            foreach (Elements.Tab t in this.Controls.Find("__tab", true))
+                if (t.Selected) return t;
+            return null;
         }
 
         public void SelectTab(int _id) {
@@ -625,8 +740,8 @@ namespace proton {
                 return;
             }
 
-            if (o != null) o.FileContent = Editor.Text;
-            Editor.Text = n.FileContent;
+            if (o != null) o.FileContent = this.Editor.Text;
+            this.Editor.Text = n.FileContent;
             n.Selected = true;
             n.Invalidate();
         }
@@ -639,13 +754,74 @@ namespace proton {
             return f;
         }
 
-        public Elements.Tab AddTab(string _name = "", string _content = "") {
+        public void ReloadTab(Elements.Tab _t) {
+            _t.Reload();
+            if (_t.Selected)
+                this.Editor.Text = _t.FileContent;
+        }
+
+        public void MoveTab(Elements.Tab _tab, int _move, bool _abs = false) {
+            Control par = this.Controls.Find("__tabs", true)[0];
+
+            int ix = 0;
+            List<Elements.Tab> tabs = new List<Elements.Tab> ();
+
+            int i = 0;
+            foreach (Elements.Tab _t in par.Controls.Find("__tab", true)) {
+                if (_t == _tab) ix = i;
+                tabs.Add(_t);
+                i++;
+            }
+
+            int n = _abs ? _move : ix + _move;
+            if (n < 0 || n > i) return;
+
+            par.Controls.Clear();
+
+            tabs.RemoveAt(ix);
+            tabs.Insert(n, _tab);
+
+            foreach (Elements.Tab t in tabs)
+                par.Controls.Add(t);
+        }
+
+        public Elements.Tab AddTab(string _name = "", string _content = "", string _path = "") {
             int id = 0;
             while (this.CheckTabIDAvailability(id)) id++;
 
-            Elements.Tab Tab = new Elements.Tab(_name, _content, id);
+            Elements.Tab Tab = new Elements.Tab(_name, _content, id, _path);
 
-            Tab.Click += (s, e) => SelectTab(id);
+            Tab.MouseDown += (s, e) => SelectTab(id);
+            Tab.Encoding = Settings.S.DefaultEncoding;
+            
+            int dropIndex = -1;
+            GlobalMouseHandler.SuperMouseMove += (p, d) => {
+                if (d)
+                    if (Tab.IsMoving) {
+                        this.tw.Set(new Point(
+                            p.X - this.Left - Tab.ClientRectangle.Width / 2,
+                            p.Y - this.Top - Tab.ClientRectangle.Height / 2
+                        ), new Size(50, Tab.ClientRectangle.Height), " ");
+
+                        int ix = 0;
+                        foreach (Elements.Tab _t in this.Controls.Find("__tab", true))
+                            if (p.X - this.Left - Tab.ClientRectangle.Width / 2 < _t.PointToScreen(Point.Empty).X - this.Left) {
+                                this.ts.Set(new Point(
+                                    _t.PointToScreen(Point.Empty).X - this.Left,
+                                    _t.PointToScreen(Point.Empty).Y - this.Top
+                                ), new Size(Style.TabMoveCursorWidth, _t.ClientRectangle.Height), "");
+                                dropIndex = ix;
+                                break;
+                            } else ix++;
+                    }
+            };
+
+            GlobalMouseHandler.SuperMouseClick += (p, d, r) => {
+                if (!d && dropIndex > -1) {
+                    this.MoveTab(Tab, dropIndex, true);
+                    dropIndex = -1;
+                }
+            };
 
             Tab.AddContextMenu(this, TabMenu);
 
@@ -656,12 +832,7 @@ namespace proton {
             return Tab;
         }
 
-        private void MenuCloseControlAdd(Control c, Form Base) {
-            foreach (Control cc in c.Controls)
-                this.MenuCloseControlAdd(cc, Base);
-            
-            c.MouseDown += (s, e) => CloseAllMenus(Base);
-        }
+        #endregion
 
         public static void CloseAllMenus(Control Base, int _lvl = 0) {
             foreach (MenuWindow mw in Base.Controls.Find("__MenuWindow", true))

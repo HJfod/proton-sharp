@@ -34,6 +34,7 @@ namespace proton {
         public static int CheckBoxStroke = _S(2);
         public static int SelectBoxHeight = _S(140);
         public static int SelectOptionHeight = _S(25);
+        public static int TabMoveCursorWidth = _S(3);
         public static string EditorFont = "Segoe UI Light";
         public static Padding Padding = new Padding(PaddingSize);
         public static dynamic Fonts = new ExpandoObject();
