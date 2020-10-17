@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Text;
 
 namespace proton {
     namespace Elements {
@@ -9,6 +10,7 @@ namespace proton {
             private Color HoverColor;
             public string FileName = "";
             public string FileContent = "";
+            public Encoding Encoding = Encoding.UTF8;
             public bool Selected = false;
             public int ID = 0;
             private string Extention = "";

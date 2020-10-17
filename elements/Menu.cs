@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Text;
 
 namespace proton {
     namespace Elements {
@@ -118,10 +119,44 @@ namespace proton {
                             b.Click += (s, e) => {
                                 Sub.SetVar(!Sub.GetVar());
                                 b.Text = $"{Sub.Text}   #{(Sub.GetVar() ? "--BT" : "--BF")}";
+                                
+                                try {
+                                    bool x = Sub.NoClose;
+                                } catch (Exception) {
+                                    Main.CloseAllMenus(_par);
+                                }
                             };
                             this.Controls.Add(b);
 
                             if (b.ClientRectangle.Width > maxLength) maxLength = b.ClientRectangle.Width;
+                            break;
+                        case "List":
+                            Elements.Option list = new Elements.Option(Sub.Text, this.BackColor, this.HoverColor);
+                            list.Size = new Size(this.Width, Style.MenuOptionSize);
+                            list.AutoSize = true;
+
+                            List<dynamic> items = new List<dynamic>();
+                            foreach (dynamic item in Sub.List)
+                                items.Add(new {
+                                    Type = "Checkbox",
+                                    Text = item.Text,
+                                    GetVar = new Func<bool> (() => { return item.Encoding.Equals( Sub.GetVar() ); }),
+                                    SetVar = new Func<bool, bool> (_val => Sub.SetVar(item.Encoding))
+                                });
+                            
+                            list.Text = $"{list.Text}   #\u2bc8";
+                            list.Click += (s, e) => {
+                                Main.CloseAllMenus(_par, this.Level + 1);
+
+                                MenuWindow m = new MenuWindow(_par, items.ToArray(), this.isTop,
+                                    new Point(this.Location.X + this.Width, this.Location.Y + list.Top), this.Level + 1);
+                                _par.Controls.Add(m);
+                                m.BringToFront();
+                            };
+                            
+                            this.Controls.Add(list);
+
+                            if (list.ClientRectangle.Width > maxLength) maxLength = list.ClientRectangle.Width;
                             break;
                     }
                 } catch (Exception) {

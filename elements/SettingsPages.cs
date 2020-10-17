@@ -1,5 +1,8 @@
 using System;
+using System.Linq;
 using System.Windows.Forms;
+using System.Text;
+using System.Collections.Generic;
 
 namespace proton {
     namespace SettingsWind {
@@ -14,6 +17,15 @@ namespace proton {
                     new Func<bool>(() => { return Settings.S.CloseMenuOnDeFocus; }),
                     new Func<bool, bool>(_val => Settings.S.CloseMenuOnDeFocus = _val)
                 ), "Close context menu(s) on Window defocus"));
+
+                Elements.Select enc = new Elements.Select(this);
+                foreach (KeyValuePair<string, Encoding> e in Main.Encodings)
+                    enc.AddItem(e.Key);
+                enc.Selected += ix => {
+                    Settings.S.DefaultEncoding = Main.Encodings.ElementAt(ix).Value;
+                };
+
+                this.Controls.Add(enc);
             }
         }
         public class Appearance : TableLayoutPanel {

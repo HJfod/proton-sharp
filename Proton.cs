@@ -89,6 +89,13 @@ namespace proton {
         public List<dynamic> ShortCuts = new List<dynamic>{};
         public Elements.Textarea Editor;
         public static dynamic[] Themes;
+        public static Dictionary<string, Encoding> Encodings = new Dictionary<string, Encoding> {
+            { "UTF-8", Encoding.UTF8 },
+            { "ASCII", Encoding.ASCII },
+            { "UTF-16", Encoding.Unicode }
+        };
+
+        public dynamic[] TabMenu;
 
         public static SettingsWindow SettingsWindow;
 
@@ -152,6 +159,11 @@ namespace proton {
             this.ApplyWindowResizer();
 
             this.FormBorderStyle = FormBorderStyle.None;
+
+            this.FormClosed += (s, e) => {
+                Dat.SaveToUserData("close-menus", Settings.S.CloseMenuOnDeFocus.ToString());
+                Dat.SaveToUserData("encoding", Settings.S.DefaultEncoding.EncodingName);
+            };
 
             FullReload();
         }
@@ -384,6 +396,49 @@ namespace proton {
                 }
             };
 
+            List<dynamic> EncoSelect = new List<dynamic> ();
+            foreach (KeyValuePair<string, Encoding> e in Encodings)
+                EncoSelect.Add(new {
+                    Text = e.Key,
+                    Encoding = e.Value
+                });
+
+            this.TabMenu = new dynamic[] {
+                new {
+                    Name = "Document Info",
+                    Click = new EventHandler((s, e) => {})
+                },
+                new {
+                    Type = "List",
+                    Text = "Encoding",
+                    GetVar = new Func<Encoding>(() => {
+                        foreach (Elements.Tab t in this.Controls.Find("__tab", true))
+                            if (t.Selected) return t.Encoding;
+                        return null;
+                    }),
+                    SetVar = new Func<Encoding, bool>(_val => {
+                        foreach (Elements.Tab t in this.Controls.Find("__tab", true))
+                            if (t.Selected) t.Encoding = _val;
+                        return true;
+                    }),
+                    List = EncoSelect.ToArray()
+                },
+                new { Type = "Separator" },
+                new {
+                    Name = "Close#Ctrl + W",
+                    Accelerator = (Keys.Control | Keys.W),
+                    Click = new EventHandler((s, e) => {
+                        int last = 0;
+                        foreach (Elements.Tab t in this.Controls.Find("__tab", true))
+                            if (t.Selected) {
+                                t.Dispose();
+                                break;
+                            } else last = t.ID;
+                        this.SelectTab(last);
+                    })
+                }
+            };
+
             Editor.AddContextMenu(this, EditMenu);
 
             FileSystemView.AddContextMenu(this, new dynamic[] {
@@ -456,6 +511,10 @@ namespace proton {
                     Menu = EditMenu
                 },
                 new {
+                    Name = "Document",
+                    Menu = TabMenu
+                },
+                new {
                     Name = "View",
                     Menu = new dynamic[] {
                         new {
@@ -519,10 +578,6 @@ namespace proton {
 
             this.Deactivate += (s, e) => { if (Settings.S.CloseMenuOnDeFocus) CloseAllMenus(this); };
 
-            this.FormClosed += (s, e) => {
-                Dat.SaveToUserData("close-menus", Settings.S.CloseMenuOnDeFocus.ToString());
-            };
-
             SearchBox.BringToFront();
 
             if (_savedtabs != null) {
@@ -562,12 +617,14 @@ namespace proton {
                 t.Selected = false;
                 t.Invalidate();
             }
+
             if (n == null) {
                 if (this.Controls.Find("__tab", true).Length == 0)
                     AddTab(Ext.DefaultFile);
                 SelectTab(-1);
                 return;
             }
+
             if (o != null) o.FileContent = Editor.Text;
             Editor.Text = n.FileContent;
             n.Selected = true;
@@ -590,15 +647,7 @@ namespace proton {
 
             Tab.Click += (s, e) => SelectTab(id);
 
-            Tab.AddContextMenu(this, new dynamic[] {
-                new {
-                    Name = "Close#Ctrl + W",
-                    Click = new EventHandler((s, e) => {
-                        Tab.Dispose();
-                        this.SelectTab(id > 0 ? id - 1 : 0);
-                    })
-                }
-            });
+            Tab.AddContextMenu(this, TabMenu);
 
             this.Controls.Find("__tabs", true)[0].Controls.Add(Tab);
 

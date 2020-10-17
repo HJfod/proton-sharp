@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Drawing;
+using System.Text;
 
 namespace proton {
     public static class Settings {
@@ -16,6 +17,7 @@ namespace proton {
         public static class S {
             public static bool CloseMenuOnDeFocus = false;
             public static uint ScrollWheelDecelerator = 1;
+            public static Encoding DefaultEncoding = Encoding.UTF8;
         }
     }
 
