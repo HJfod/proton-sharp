@@ -35,6 +35,8 @@ namespace proton {
             }
 
             protected override void OnPaintBackground(PaintEventArgs e) {
+                base.OnPaintBackground(e);
+                
                 e.Graphics.FillRectangle(new SolidBrush(GetTitlebarColor(true)), new Rectangle(
                     this.ClientRectangle.X + this.ClientRectangle.Width / 2,
                     this.ClientRectangle.Y,
@@ -71,6 +73,8 @@ namespace proton {
 
                 this.Controls.Add(C);
 
+                this.Invalidate();
+
                 this.grad[1] += C.ClientRectangle.Width;
             }
 
@@ -90,6 +94,8 @@ namespace proton {
 
                 this.Controls.Add(t);
 
+                this.Invalidate();
+
                 this.grad[0] += t.ClientRectangle.Width;
             }
 
@@ -106,6 +112,8 @@ namespace proton {
                 _par.Deactivate += (s, e) => C.ForeColor = Style.Colors.TextDark;;
 
                 this.Controls.Add(C);
+
+                this.Invalidate();
 
                 this.grad[0] += C.ClientRectangle.Width;
 

@@ -95,8 +95,8 @@ namespace proton {
     public delegate void SHandler (object Sender, SEventArgs e);
     
     public partial class Main : Form {
-        public int FileSystemSize = 200;
-        public (int, int) FileSystemSizeLimits = (100, 300);
+        public int FileSystemSize = Style._S(200);
+        public (int, int) FileSystemSizeLimits = (Style._S(100), Style._S(300));
         public bool FileSystemVisible = false;
         public int TitleBarYOffset = 6;
 
@@ -146,10 +146,9 @@ namespace proton {
         }
 
         public void LoadTheme(string _name) {
-            foreach (dynamic t in Themes) {
+            foreach (dynamic t in Themes)
                 if (t.Name == _name)
                     t.Click(this, new EventArgs());
-            }
         }
 
         private void MaxNomWindow(Form OG) {
@@ -215,6 +214,10 @@ namespace proton {
 
             this.FormClosed += (s, e) => {
                 Dat.SaveToUserData("encoding", Settings.S.DefaultEncoding.CodePage.ToString());
+                Dat.SaveToUserData("keep-size", Settings.S.RememberSize.ToString());
+                Dat.SaveToUserData("saved-size", 
+                    this.WindowState == FormWindowState.Maximized ? "max" :
+                    $"{this.Size.Width};{this.Size.Height}");
 
                 List<string> paths = new List<string> ();
                 foreach (Elements.Tab t in this.Controls.Find("__tab", true))
@@ -237,6 +240,17 @@ namespace proton {
             Dat.LoadUserData();
             this.LoadTheme(Dat.GetUserDataKey("theme"));
             Settings.S.DefaultEncoding = Encoding.GetEncoding(Dat.GetUserDataKey("encoding") == "" ? 0 : Int32.Parse(Dat.GetUserDataKey("encoding")));
+            Settings.S.RememberSize = Dat.GetUserDataKey("keep-size") == "True";
+            if (Settings.S.RememberSize)
+                if (Dat.GetUserDataKey("saved-size") == "max")
+                    this.WindowState = FormWindowState.Maximized;
+                else
+                    this.Size = new Size(
+                        Int32.Parse(Dat.GetUserDataKey("saved-size").Split(";")[0]),
+                        Int32.Parse(Dat.GetUserDataKey("saved-size").Split(";")[1])
+                    );
+            else
+                this.Size = Settings.DefaultSize;
 
             Reload();
         }
@@ -246,7 +260,6 @@ namespace proton {
 
             string[] Symbols = Dat.LoadSymbols();
 
-            this.Size = Settings.DefaultSize;
             this.Text = $"{Settings.AppName} {Settings.AppVerString} {Settings.AppVerNum}";
             this.DoubleBuffered = true;
             this.ForeColor = Color.Black;
@@ -701,14 +714,13 @@ namespace proton {
                 Bottom.UpdateWordCount(0, 0, 0);
 
                 this.CenterToScreen();
-
             }
         }
 
         public void OpenSettings() {
             CloseAllMenus(this);
             if (SettingsWindow is SettingsWindow) return;
-            SettingsWindow = new SettingsWindow();
+            SettingsWindow = new SettingsWindow(this);
             SettingsWindow.Show();
             SettingsWindow.BringToFront();
             SettingsWindow.FormClosed += (s, e) => SettingsWindow = null;

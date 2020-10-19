@@ -7,11 +7,13 @@ using BorderlessResizer;
 namespace proton {
     public class SettingsWindow : Form {
         public int TitleBarYOffset = 6;
-        public int TabsWidth = 100;
+        public int TabsWidth = Style._S(100);
+        public Main Par;
 
-        public SettingsWindow() {
-            this.Size = new Size(500, 400);
+        public SettingsWindow(Main _par) {
+            this.Size = new Size(Style._S(500), Style._S(400));
             this.CenterToScreen();
+            this.Par = _par;
 
             (new Core.DropShadow()).ApplyShadows(this);
             this.ApplyWindowResizer();
@@ -79,7 +81,7 @@ namespace proton {
                 new SettingsWind.General(Con),
                 new SettingsWind.Appearance(Con),
                 new SettingsWind.Cloud(Con),
-                new SettingsWind.About(Con)
+                new SettingsWind.About(Con, Par)
             }) {
                 x.Location = new Point(TabsWidth + Style.PaddingSize, Style.PaddingSize);
 

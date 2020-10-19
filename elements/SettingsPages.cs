@@ -27,6 +27,13 @@ namespace proton {
                     new Func<bool, bool>(_val => Settings.S.RememberSession = _val)
                 ), "Remember Session"));
 
+                this.Controls.Add(new Elements.CheckBox(new Tuple<Func<bool>, Func<bool, bool>> (
+                    new Func<bool>(() => { return Settings.S.RememberSize; }),
+                    new Func<bool, bool>(_val => Settings.S.RememberSize = _val)
+                ), "Remember Window Size"));
+
+                this.Controls.Add(new Elements.NewLine());
+
                 Elements.Select enc = new Elements.Select(this);
                 foreach (KeyValuePair<string, Encoding> e in Main.Encodings) {
                     enc.AddItem(e.Key);
@@ -69,7 +76,7 @@ namespace proton {
             }
         }
         public class About : TableLayoutPanel {
-            public About(Control _par) {
+            public About(Control _par, Main _main) {
                 this.Name = "About";
                 this.AutoSize = true;
                 this.Size = _par.Size.Shrink(Style.PaddingSize);
@@ -79,6 +86,10 @@ namespace proton {
                 this.Controls.Add(new Elements.Text($"Version {Settings.AppVerString} ({Settings.AppVerNum})", false, -1, true));
                 this.Controls.Add(new Elements.NewLine());
                 this.Controls.Add(new Elements.Text("Developed by HJfod"));
+                this.Controls.Add(new Elements.NewLine());
+                this.Controls.Add(new Elements.But("Reload app", Style.Colors.Main, null, null, null, null, new EventHandler((s, e) => {
+                    _main.Reload();
+                })));
             }
         }
     }

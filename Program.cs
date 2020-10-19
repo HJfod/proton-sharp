@@ -17,6 +17,7 @@ namespace proton {
         public static class S {
             public static uint ScrollWheelDecelerator = 1;
             public static bool RememberSession = false;
+            public static bool RememberSize = false;
             public static Encoding DefaultEncoding = Encoding.UTF8;
         }
     }

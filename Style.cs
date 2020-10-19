@@ -26,8 +26,8 @@ namespace proton {
         public static int PaddingSize = _S(15);
         public static int EditorTextSize = 12;
         public static int MenuOptionSize = _S(25);
-        public static int UITextSize = _S(10);
-        public static int MenuTextSize = _S(8);
+        public static int UITextSize = 10;
+        public static int MenuTextSize = 8;
         public static int MenuPadding = _S(8);
         public static int MenuDefWidth = _S(20);
         public static int SearchBoxWidth = _S(280);
