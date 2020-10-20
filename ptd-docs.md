@@ -12,3 +12,7 @@ b - bold
 i - italics
 ul - underline
 img - image
+
+Escaping:
+
+`\[some text]{some text}`
