@@ -142,6 +142,8 @@ namespace BorderlessResizer {
             }
 
             GlobalMouseHandler.SuperMouseClick += (p, d, r) => {
+                if (Form.ActiveForm != _form) return;
+
                 byte l = CheckLocation(p);
                 if (d && resizing == RZ_NONE && l != RZ_NONE) resizing = l;
             };

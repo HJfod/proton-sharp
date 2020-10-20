@@ -28,6 +28,14 @@ namespace proton {
         public static Size Shrink(this Size _s, int _shrink) {
             return new Size(_s.Width - _shrink, _s.Height - _shrink);
         }
+        public static string Get(this string _s, string _v, int subs = 0, int subl = 0) {
+            string v = (Regex.Match(_s, _v)).Value;
+            if (subl > 0)
+                return v.Substring(subs, subl);
+            else if (subl < 0)
+                return v.Substring(subs, v.Length - subs - -subl);
+            return v;
+        }
     }
 
     public static class Ext {
@@ -125,6 +133,30 @@ namespace proton {
         private const byte F_WRITE_STREAM_FAIL       = 0x0002;
 
         #endregion
+
+        public string ConvertPtdToRtf(string _text) {
+            string res = _text.Replace("\\", "\\\\");
+
+            foreach (Match f in Regex.Matches(_text, @"(\\)*\[.*?\]\{.*?\}"))
+                if (f.Value.Get(@"^\\*").Length % 2 == 0)
+                    res = res.Replace(f.Value, $"\\{f.Value.Get(@"\[.*?\]", 1, -1)} {f.Value.Get(@"{.*?}", 1, -1)}\\{f.Value.Get(@"\[.*?\]", 1, -1)}0 ");
+                else res = res.Replace(f.Value, f.Value.Substring(f.Value.IndexOf("[")));
+            res = res.Replace(@"\\n", @"\par" + "\n");
+            res = res.Replace("{", "\\{");
+            res = res.Replace("}", "\\}");
+
+            res = $"{{\\rtf1 {res}\n}}";
+            
+            return res;
+        }
+
+        public string ConvertRtfToPtd(string _rtf) {
+            string res = _rtf;
+
+            // TODO
+
+            return res;
+        }
 
         private void LoadThemes() {
             List<dynamic> _t = new List<dynamic> ();
@@ -624,6 +656,21 @@ namespace proton {
                                 FileSystem.Visible = FileSystem.Visible ? false : true;
                                 Dragger.Visible = FileSystem.Visible;
                             })
+                        }
+                    }
+                },
+                new {
+                    Name = "Debug",
+                    Menu = new dynamic[] {
+                        new {
+                            Name = "Print Editor contents",
+                            Click = new EventHandler((s, e) => { Console.WriteLine(Editor.Rtf); })
+                        },
+                        new {
+                            Name = "Test button",
+                            Click = new EventHandler((s, e) => { Editor.Rtf = ConvertPtdToRtf(
+                                @"Does [b]{this} work?\n\nAt [i]{all}?\nWhat \ about \[i]{this}?\n\\[ul]{this}"
+                            ); })
                         }
                     }
                 }
